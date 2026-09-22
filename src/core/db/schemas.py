@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from pydantic import EmailStr
-from sqlmodel import Field, SQLModel
+# from sqlmodel import Field, SQLModel
 
 
 # Общие свойства

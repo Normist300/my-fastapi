@@ -2,33 +2,36 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import EmailStr
-from sqlmodel import DateTime, Field, SQLModel, Relationship
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+# from sqlmodel import DateTime, Field, SQLModel, Relationship
 
-from src.core.db.schemas import (
-    UserBase,
-    ItemBase
+from src.core.db.base import (
+    Base,
+    UUIDPKMixin,
+    TimestampMixin
 )
+class User(Base, UUIDPKMixin, TimestampMixin):
+    '''ORM-Таблица пользователей'''
+    __tablename__ = "user"
 
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    is_superuser: Mapped[bool] = mapped_column(default=False)
+    full_name: Mapped[str | None] = mapped_column(default=None)
+    hashed_password: Mapped[str]
 
-def get_datetime_utc() -> datetime:
-    return datetime.now(UTC)
-
-class User(UserBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    hashed_password: str
-    created_at: datetime | None = Field(
-        default_factory=get_datetime_utc,
-        sa_type=DateTime(timezone=True), # type: ignore
-    )
-    items: list[Item] = Relationship(back_populates="owner", cascade_delete=True)
-
-class Item(ItemBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_at: datetime | None = Field(
-            default_factory=get_datetime_utc,
-            sa_type=DateTime(timezone=True), # type: ignore
+    items: Mapped[list[Item]] = relationship(
+        back_populates="owner",
+        cascade="all, delete-orphan"
         )
-    owner_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
-    )
-    owner: User | None = Relationship(back_populates="items")
+
+class Item(Base, UUIDPKMixin, TimestampMixin):
+    '''ORM-Таблица предметов'''
+    __tablename__ = "item"
+
+    title: Mapped[str]
+    description: Mapped[str | None] = mapped_column(default=None)
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
+
+    owner: Mapped[User | None] = relationship(back_populates="items")
