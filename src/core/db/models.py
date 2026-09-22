@@ -4,14 +4,13 @@ from datetime import UTC, datetime
 from pydantic import EmailStr
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-# from sqlmodel import DateTime, Field, SQLModel, Relationship
 
 from src.core.db.base import (
     Base,
-    UUIDPKMixin,
+    IDMixin,
     TimestampMixin
 )
-class User(Base, UUIDPKMixin, TimestampMixin):
+class User(Base, IDMixin, TimestampMixin):
     '''ORM-Таблица пользователей'''
     __tablename__ = "user"
 
@@ -26,8 +25,11 @@ class User(Base, UUIDPKMixin, TimestampMixin):
         cascade="all, delete-orphan"
         )
 
-class Item(Base, UUIDPKMixin, TimestampMixin):
-    '''ORM-Таблица предметов'''
+class Item(Base, IDMixin, TimestampMixin):
+    '''
+    ORM-Таблица предметов
+    Предметы существуют только вместе с юзерами
+    '''
     __tablename__ = "item"
 
     title: Mapped[str]

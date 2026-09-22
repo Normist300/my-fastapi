@@ -12,7 +12,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class UUIDPKMixin:
+class IDMixin:
     '''Дополнение ID'''
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True,
