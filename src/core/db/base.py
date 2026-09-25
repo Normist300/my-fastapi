@@ -21,11 +21,12 @@ class IDMixin:
 
 class TimestampMixin:
     '''Дополнение время создания и обновления'''
-    created_at: Mapped[DateTime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=get_datetime_utc
         )
-    updated_at: Mapped[DateTime] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=get_datetime_utc
+        default=get_datetime_utc,
+        onupdate=get_datetime_utc
     )

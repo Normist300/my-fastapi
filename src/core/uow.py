@@ -4,11 +4,11 @@ from src.repositories.base import AbstractRepository
 from src.core.db.models import User, Item
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from src.repositories.user import UserRepository
+from src.repositories.user import UserRepository, AbstractUserRepository
 from src.repositories.item import ItemRepository
 
 class AbstractUnitOfWork(ABC):
-    users: AbstractRepository[User]
+    users: AbstractUserRepository
     items: AbstractRepository[Item]
 
     async def __aenter__(self) -> Self:

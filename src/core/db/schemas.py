@@ -8,8 +8,8 @@ class IDMixin(BaseModel):
     id: uuid.UUID
 
 class TimestampMixin(BaseModel):
-    created_at: datetime | None
-    updated_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
 
 class ORMReadMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
