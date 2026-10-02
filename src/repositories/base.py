@@ -1,31 +1,24 @@
 import uuid
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
 
 from src.core.db.base import Base
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-ModelType = TypeVar("ModelType", bound=Base)
-
-class AbstractRepository(ABC, Generic[ModelType]):
+class AbstractRepository[ModelType: Base](ABC):
     @abstractmethod
-    async def add_one(self, obj: ModelType) -> ModelType:
-        pass
+    async def add_one(self, obj: ModelType) -> ModelType: ...
 
     @abstractmethod
-    async def get_one(self, id: uuid.UUID) -> ModelType | None:
-        pass
+    async def get_one(self, id: uuid.UUID) -> ModelType | None: ...
 
     @abstractmethod
-    async def find_all(self) -> list[ModelType]:
-        pass
+    async def find_all(self) -> list[ModelType]: ...
 
     @abstractmethod
-    async def delete(self, id: uuid.UUID) -> None:
-        pass
+    async def delete(self, id: uuid.UUID) -> None: ...
 
-class SQLAlchemyRepository(AbstractRepository[ModelType]):
+class SQLAlchemyRepository[ModelType: Base](AbstractRepository[ModelType]):
     model: type[ModelType]
 
     def __init__(self, session: AsyncSession) -> None:

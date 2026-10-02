@@ -4,8 +4,8 @@ from src.repositories.base import AbstractRepository
 from src.core.db.models import User, Item
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from src.repositories.user import UserRepository, AbstractUserRepository
-from src.repositories.item import ItemRepository
+from src.repositories.user import SQLAlchemyUserRepository, AbstractUserRepository
+from src.repositories.item import SQLAlchemyItemRepository
 
 class AbstractUnitOfWork(ABC):
     users: AbstractUserRepository
@@ -32,13 +32,16 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
 
     async def __aenter__(self) -> Self:
         self.session = self.session_factory()
-        self.users = UserRepository(self.session)
-        self.items = ItemRepository(self.session)
+        self.users = SQLAlchemyUserRepository(self.session)
+        self.items = SQLAlchemyItemRepository(self.session)
         return self
 
+    # __aexit__ оформлять через try, чтобы точно session.close()
     async def __aexit__(self, exc_type, exc, tb) -> None:
-        await super().__aexit__(exc_type, exc, tb) # здесь roolback из абстракции
-        return await self.session.close()
+        try:
+            await super().__aexit__(exc_type, exc, tb) # здесь roolback из абстракции
+        finally:
+            await self.session.close()
 
     async def rollback(self) -> None:
         await self.session.rollback()
