@@ -23,19 +23,23 @@ class UserBase(BaseModel):
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
 
+# Для заполнения клиентом
 class UserRegister(BaseModel):
     '''Для заполнения клиентом'''
     email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
 
-class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=128)
-
-class UserPublic(IDMixin, TimestampMixin, ORMReadMixin):
+class UserUpdate(BaseModel):
+    '''Для заполнения клиентом'''
     email: EmailStr = Field(max_length=255)
     full_name: str | None = Field(default=None, max_length=255)
 
+
+# Для вывода
+class UserPublic(IDMixin, TimestampMixin, ORMReadMixin):
+    email: EmailStr = Field(max_length=255)
+    full_name: str | None = Field(default=None, max_length=255)
 
 class UserRead(UserBase, IDMixin, TimestampMixin, ORMReadMixin):
     pass
