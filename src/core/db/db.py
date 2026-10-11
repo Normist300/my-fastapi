@@ -1,12 +1,6 @@
-from functools import lru_cache
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
-from src.core.config import Settings
-
-
-@lru_cache
-def get_settings() -> Settings:
-    return Settings() # type: ignore
+from src.core.config import get_settings
 
 
 engine: AsyncEngine = create_async_engine(

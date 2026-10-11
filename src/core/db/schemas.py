@@ -32,7 +32,7 @@ class UserRegister(BaseModel):
 
 class UserUpdate(BaseModel):
     '''Для заполнения клиентом'''
-    email: EmailStr = Field(max_length=255)
+    # email: EmailStr = Field(max_length=255)
     full_name: str | None = Field(default=None, max_length=255)
 
 
@@ -51,7 +51,12 @@ class ItemBase(BaseModel):
     description: str | None = Field(default=None, max_length=255)
 
 class ItemCreate(ItemBase):
+    # owner_id: uuid.UUID
     pass
+
+class ItemUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=255)
 
 class ItemRead(ItemBase, IDMixin, TimestampMixin, ORMReadMixin):
     pass
@@ -59,3 +64,6 @@ class ItemRead(ItemBase, IDMixin, TimestampMixin, ORMReadMixin):
 
 class UserReadWithItems(UserRead):
     items: list[ItemRead]
+
+# class Message(BaseModel):
+#     message: str
