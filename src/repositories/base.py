@@ -20,6 +20,7 @@ class AbstractRepository[ModelType: Base](ABC):
     @abstractmethod
     async def delete(self, id: uuid.UUID) -> None: ...
 
+
 class SQLAlchemyRepository[ModelType: Base](AbstractRepository[ModelType]):
     model: type[ModelType]
 

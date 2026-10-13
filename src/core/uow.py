@@ -41,7 +41,7 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
     # __aexit__ оформлять через try, чтобы точно session.close()
     async def __aexit__(self, exc_type, exc, tb) -> None:
         try:
-            await super().__aexit__(exc_type, exc, tb) # здесь roolback из абстракции
+            await super().__aexit__(exc_type, exc, tb)  # здесь roolback из абстракции
         finally:
             await self.session.close()
 

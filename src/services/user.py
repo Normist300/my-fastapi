@@ -18,14 +18,14 @@ class UserService:
         return user
 
     async def register(self, data: UserRegister) -> UserPublic:
-        async with self.uow: # Начало блока транзакции
+        async with self.uow:  # Начало блока транзакции
             if await self.uow.users.get_by_email(data.email) is not None:
                 raise UserAlreadyExists(data.email)
 
             user = User(
                 email=data.email,
                 full_name=data.full_name,
-                hashed_password=hash_password(data.password)
+                hashed_password=hash_password(data.password),
             )
             await self.uow.users.add_one(user)
             await self.uow.commit()

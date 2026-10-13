@@ -18,11 +18,9 @@ class ItemService:
         async with self.uow:
             if await self.uow.users.get_one(user_id) is None:
                 raise UserNotFound(user_id)
-            
+
             item = Item(
-                title=data.title,
-                description=data.description,
-                owner_id=user_id
+                title=data.title, description=data.description, owner_id=user_id
             )
             await self.uow.items.add_one(item)
             await self.uow.commit()
@@ -38,7 +36,9 @@ class ItemService:
 
             return ItemRead.model_validate(item)
 
-    async def update(self, item_id: uuid.UUID, user_id: uuid.UUID, data: ItemUpdate) -> ItemRead:
+    async def update(
+        self, item_id: uuid.UUID, user_id: uuid.UUID, data: ItemUpdate
+    ) -> ItemRead:
         async with self.uow:
             item = await self.uow.items.get_one(item_id)
             if item is None:

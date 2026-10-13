@@ -7,7 +7,8 @@ from src.core.db.base import Base, IDMixin, TimestampMixin
 
 
 class User(Base, IDMixin, TimestampMixin):
-    '''ORM-Таблица пользователей'''
+    """ORM-Таблица пользователей"""
+
     __tablename__ = "user"
 
     email: Mapped[str] = mapped_column(unique=True, index=True)
@@ -17,19 +18,22 @@ class User(Base, IDMixin, TimestampMixin):
     hashed_password: Mapped[str]
 
     items: Mapped[list[Item]] = relationship(
-        back_populates="owner",
-        cascade="all, delete-orphan"
-        )
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+
 
 class Item(Base, IDMixin, TimestampMixin):
-    '''
+    """
     ORM-Таблица предметов
     Предметы существуют только вместе с юзерами
-    '''
+    """
+
     __tablename__ = "item"
 
     title: Mapped[str]
     description: Mapped[str | None] = mapped_column(default=None)
-    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE")
+    )
 
     owner: Mapped[User | None] = relationship(back_populates="items")

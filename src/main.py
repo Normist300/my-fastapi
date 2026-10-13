@@ -14,6 +14,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
     yield
     await engine.dispose()
 
+
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
