@@ -35,7 +35,7 @@ async def update_item(
     return await service.update(item_id, user_id, data)
 
 
-@router.delete("")
+@router.delete("/{user_id}/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
     item_id: uuid.UUID, user_id: uuid.UUID,
     service: ItemServiceDep) -> None:
