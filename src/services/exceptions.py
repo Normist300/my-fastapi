@@ -3,6 +3,7 @@ from typing import ClassVar
 
 from fastapi import status
 
+
 class DomainException(Exception):
     status_code: ClassVar[int] = status.HTTP_400_BAD_REQUEST
 

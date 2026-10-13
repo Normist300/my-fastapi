@@ -1,11 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
-from src.repositories.base import AbstractRepository
-
-from src.repositories.base import SQLAlchemyRepository
-from src.core.db.models import User
+from abc import abstractmethod
 
 from sqlalchemy import select
+
+from src.core.db.models import User
+from src.repositories.base import AbstractRepository, SQLAlchemyRepository
+
 
 class AbstractUserRepository(AbstractRepository[User]):
     @abstractmethod

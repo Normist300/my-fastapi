@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Self
-from src.repositories.base import AbstractRepository
-from src.core.db.models import User, Item
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from src.repositories.user import SQLAlchemyUserRepository, AbstractUserRepository
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from src.core.db.models import Item
+from src.repositories.base import AbstractRepository
 from src.repositories.item import SQLAlchemyItemRepository
+from src.repositories.user import AbstractUserRepository, SQLAlchemyUserRepository
+
 
 class AbstractUnitOfWork(ABC):
     users: AbstractUserRepository

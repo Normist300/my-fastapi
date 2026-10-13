@@ -3,10 +3,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.core.db.db import engine
-from src.core.config import get_settings
-from src.core.exception_handlers import register_exception_handlers
 from src.api.v1.main import api_router
+from src.core.config import get_settings
+from src.core.db.db import engine
+from src.core.exception_handlers import register_exception_handlers
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None]:

@@ -3,11 +3,9 @@ import uuid
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.db.base import (
-    Base,
-    IDMixin,
-    TimestampMixin
-)
+from src.core.db.base import Base, IDMixin, TimestampMixin
+
+
 class User(Base, IDMixin, TimestampMixin):
     '''ORM-Таблица пользователей'''
     __tablename__ = "user"

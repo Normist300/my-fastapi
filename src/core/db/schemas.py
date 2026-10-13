@@ -1,6 +1,7 @@
 import uuid
-from datetime import UTC, datetime
-from pydantic import EmailStr, Field, BaseModel, ConfigDict
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # region Mixins

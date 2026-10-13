@@ -1,10 +1,12 @@
 from typing import Annotated
+
 from fastapi import Depends
 
-from src.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
 from src.core.db.db import async_session_factory
-from src.services.user import UserService
+from src.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
 from src.services.item import ItemService
+from src.services.user import UserService
+
 
 def get_uow() -> AbstractUnitOfWork:
     return SQLAlchemyUnitOfWork(async_session_factory)
