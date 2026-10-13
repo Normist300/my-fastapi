@@ -76,10 +76,10 @@ class ItemUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=255)
 
 
-class ItemRead(ItemBase, IDMixin, TimestampMixin, ORMReadMixin):
-    pass
+class ItemRead(ItemBase, IDMixin, TimestampMixin, ORMReadMixin): ...
 
 
+class ItemPublic(ItemRead): ...
 # endregion
 
 
