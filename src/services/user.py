@@ -40,7 +40,7 @@ class UserService:
 
     async def get(self, id: uuid.UUID) -> UserPublic:
         async with self.uow:
-            user = self._get_or_raise(id)
+            user = await self._get_or_raise(id)
             return UserPublic.model_validate(user)
 
     # async def get_by_email(self, email: str) -> UserPublic:
@@ -52,7 +52,7 @@ class UserService:
 
     async def update(self, id: uuid.UUID, data: UserUpdate) -> UserPublic:
         async with self.uow:
-            user = self._get_or_raise(id)
+            user = await self._get_or_raise(id)
             for field, value in data.model_dump(exclude_unset=True).items():
                 setattr(user, field, value)
 

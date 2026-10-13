@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # .env
     postgres_dsn: str
     # config
-    app_name = "my-fastapi"
+    app_name: str = "my-fastapi"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
 
