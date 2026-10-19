@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import (
 from src.core.config import get_settings
 
 engine: AsyncEngine = create_async_engine(
-    get_settings().postgres_dsn,
+    get_settings().postgres_dsn.get_secret_value(),
     pool_pre_ping=True,  # это общая рекомендация SQLAlchemy для прода
 )
 

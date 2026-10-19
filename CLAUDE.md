@@ -60,7 +60,7 @@ Default to this layering unless a project's existing code already does something
   - Repeated "load or raise" goes into a private helper (`async def _get_or_raise(self, id) -> User`, always `await`ed) used inside the `async with self.uow:` block.
   - Deletes: the service loads the object (raising `NotFound`), then calls `repo.delete(obj)`; the repository takes the already-loaded object and never silently no-ops. The second lookup would hit the session's identity map anyway (one session = one `async with self.uow:` block), but passing the object keeps it explicit.
   - Don't call another service's method inside an open `async with self.uow:` — FastAPI caches `get_uow` per request, so services share one UoW instance, and re-entering it replaces `self.session` (the outer work is silently lost).
-- **Domain exceptions**: services raise domain exceptions, never `HTTPException`. Keep them in `services/exceptions.py` as a hierarchy on `Exception` (`DomainError` → `NotFoundError` / `AlreadyExistsError` → `UserNotFound`, ...), pass the relevant data to `super().__init__(message)`. Each branch carries its HTTP status as a class attribute (`status_code: ClassVar[int] = status.HTTP_404_NOT_FOUND`, `from fastapi import status` — same constants as in the routers, one style across the project); subclasses inherit it and override only when they need a different code. One `exception_handler` on `DomainError` (registered from `main.py`) builds the response from `exc.status_code` + the message — no separate exception → status mapping table. Deliberate trade-off: strict layer purity isn't a goal here. Register it as `app.exception_handler(DomainError)(domain_error_handler)` (not `add_exception_handler`: mypy rejects a handler typed `exc: DomainError` there); name unused handler parameters `_` (`_: Request`).
+- **Domain exceptions**: services raise domain exceptions, never `HTTPException`. Keep them in `services/exceptions.py` as a hierarchy on `Exception` (`DomainException` → `NotFoundError` / `AlreadyExistsError` → `UserNotFound`, ...), pass the relevant data to `super().__init__(message)`. Each branch carries its HTTP status as a class attribute (`status_code: ClassVar[int] = status.HTTP_404_NOT_FOUND`, `from fastapi import status` — same constants as in the routers, one style across the project); subclasses inherit it and override only when they need a different code. One `exception_handler` on `DomainException` (registered from `main.py`) builds the response from `exc.status_code` + the message — no separate exception → status mapping table. Deliberate trade-off: strict layer purity isn't a goal here. Register it as `app.exception_handler(DomainException)(domain_exception_handler)` (not `add_exception_handler`: mypy rejects a handler typed `exc: DomainException` there); name unused handler parameters `_` (`_: Request`).
 - **App entrypoint** (`main.py`): `FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)`, one aggregating `api_router` per API version (`api/v1/main.py` includes the entity routers, `main.py` mounts it with `settings.api_v1_prefix`), then the exception handlers. `lifespan` is an `@asynccontextmanager` annotated `-> AsyncGenerator[None]` (not `AsyncIterator`, which is deprecated for this; for `@contextmanager` use `Generator[None]`) that does `await engine.dispose()` after `yield`; tables come from Alembic, not `create_all`.
 - **UoW `__aexit__`**: rollback in `try`, `session.close()` in `finally`, so a failing rollback doesn't leak the connection.
 - **Dependencies** (`api/deps.py` — the composition root, lives in the API layer because it's FastAPI-specific): `get_uow()` is a plain function returning `AbstractUnitOfWork` (not a `yield` dependency — commits stay in services); expose `Annotated` aliases (`UoWDep`, `UserServiceDep`); no session dependency for routers. Tests swap implementations via `app.dependency_overrides[get_uow]`.
@@ -103,15 +103,16 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 ## Layout
 
 - `src/` is the package root (every directory has `__init__.py`); use absolute imports `from src...`.
-- `src/main.py` — app entrypoint (lifespan, `api_router`, exception handlers).
+- `src/main.py` — app entrypoint (lifespan, `api_router`, exception handlers); the CLI finds it via `[tool.fastapi] entrypoint = "src.main:app"` in `pyproject.toml`.
 - `src/core/config.py` — `Settings` (`app_name`, `debug`, `api_v1_prefix`, `postgres_dsn`) + `get_settings()`.
-- `src/core/exception_handlers.py` — `DomainError` → HTTP response (`register_exception_handlers(app)`).
+- `src/core/exception_handlers.py` — `DomainException` → HTTP response (`register_exception_handlers(app)`).
 - `src/core/db/` — `base.py` (`Base` = plain `DeclarativeBase`, ORM `IDMixin` / `TimestampMixin`), `db.py` (`engine`, `async_session_factory`), `models.py` (`User`, `Item`), `schemas.py` (Pydantic schemas + `IDMixin` / `TimestampMixin` / `ORMReadMixin`).
 - `src/core/uow.py` — `AbstractUnitOfWork` / `SQLAlchemyUnitOfWork`.
-- `src/core/security.py` — password hashing.
+- `src/core/security.py` — `hash_password` / `verify_password` (Argon2 via `pwdlib`).
 - `src/repositories/` — `base.py` (`AbstractRepository`, `SQLAlchemyRepository`), `user.py` (`AbstractUserRepository`, `SQLAlchemyUserRepository`), `item.py` (`SQLAlchemyItemRepository`).
-- `src/services/` — `user.py` (`UserService`), `exceptions.py` (domain exceptions).
-- `src/api/dep.py` — dependencies (`get_uow`, `UoWDep`, `get_user_service`, `UserServiceDep`); routers in `src/api/v1/routes/`, aggregated by `src/api/v1/main.py` (`api_router`).
+- `src/services/` — `user.py` (`UserService`), `item.py` (`ItemService`), `exceptions.py` (domain exceptions).
+- `src/api/dep.py` — dependencies (`get_uow`, `UoWDep`, `get_user_service` / `UserServiceDep`, `get_item_service` / `ItemServiceDep`); routers in `src/api/v1/routes/` (`user.py`, `item.py`), aggregated by `src/api/v1/main.py` (`api_router`).
+- `alembic/` + `alembic.ini` — migrations (async template); `alembic/env.py` takes the URL from `get_settings().postgres_dsn` and `Base.metadata` as `target_metadata`, models are imported there so autogenerate sees them.
 
 ## Project decisions
 
@@ -120,22 +121,23 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 - User schemas: `UserRegister` (public sign-up), `UserCreate` (admin), `UserPublic` (other users), `UserRead` (admin), `UserReadWithItems` (needs `selectinload(User.items)` in the repository).
 - Plain `DeclarativeBase`, no `MappedAsDataclass` — deliberate, keep it simple for now.
 - Updates: explicit field assignments while a schema has only a few fields (switch to a `setattr` loop over an allow-list at ~5-6); update schemas are PATCH-shaped (optional fields).
+- Exception base class is `DomainException` (not `DomainError`); its handler is `domain_exception_handler`.
+- Password hashing: `pwdlib` (`PasswordHash.recommended()`, Argon2id) — not `passlib`. The salt lives inside the hash string, so `User` has a single `hashed_password` column.
+- `repo.delete(id)` does `session.get` + `session.delete`: the second lookup hits the session's identity map (no extra query), so keeping the id-based signature is accepted for now. Passing the loaded object (`delete(obj)`) is the stricter option from the general rules, not a bug.
 
 ## Local dev
 
-- `docker compose up -d` — Postgres 18 (`postgres:18`), db `my_fastapi`, port 5432, named volume at `/var/lib/postgresql`.
+- `docker compose up -d` — Postgres 18 (`postgres:18`), db `my_fastapi`, port 5432, named volume at `/var/lib/postgresql`. Docker Desktop (WSL 2) must be running on Windows.
 - `.env` (gitignored): `POSTGRES_DSN=postgresql+asyncpg://user:password@localhost:5432/my_fastapi` (matches the compose file); add `DEBUG=true` locally if wanted.
-- Run: `uv run uvicorn src.main:app --reload` (deps have plain `fastapi` + `uvicorn`, not `fastapi[standard]`); docs at `/docs`.
+- Migrations: `uv run alembic revision --autogenerate -m "<message>"` (review the generated file in `alembic/versions/`), then `uv run alembic upgrade head`; `uv run alembic current` shows the revision, `uv run alembic downgrade -1` rolls back one step.
+- Run: `uv run fastapi dev` (dev, reload, 127.0.0.1:8000) / `uv run fastapi run` (prod mode, 0.0.0.0); deps have `fastapi[standard]`. `uv run uvicorn src.main:app --reload` also works. Docs at `/docs`.
+- Checks: `uv run ruff check --diff` (preview, writes nothing), `uv run ruff check --fix`, `uv run ruff format`, `uv run mypy src`, `uv run pytest`. Commit before running `--fix` so its changes can be reverted with `git restore .`.
 
 ## Status / TODO
 
 Keep this section current.
 
-- `core/security.hash_password` is a stub (returns `None`) — choose a hashing library.
-- `get_settings()` is still in `core/db/db.py` — move it next to `Settings` in `core/config.py`, and add `app_name` / `debug` / `api_v1_prefix` to `Settings`.
-- Exceptions: code has `DomainException`, the rules say `DomainError` — pick one name. No `status_code` on the branches, no readable messages for `UserNotFound` / `UserAlreadyExists` / `ItemNotFound`; `core/exception_handlers.py` exists but isn't registered anywhere yet (no `main.py`) and still has unused imports.
-- `src/main.py`, `src/api/v1/main.py` and the routers are empty (no `lifespan`, no `api_router`).
-- `services/user.py`: `await` missing before `self._get_or_raise(id)` in `get` and `update`.
-- `services/item.py`: `update` has no `commit()` / return value and the ownership checks raise bare `PermissionDeniedError()` instead of `ItemAccessDenied(item_id, user_id)`; `ItemUpdate` inherits a required `title` (PUT-shaped) — make it a PATCH schema.
-- `repo.delete(id)` still does `get` + `delete`; switch to `delete(obj)` (service loads the object).
-- No Alembic, no tests, no `.env.example` / `.env`; `ruff` / `mypy` / `pytest` aren't dev dependencies yet (`uv add --dev ...`).
+- Exceptions have no readable messages for `UserNotFound` / `UserAlreadyExists` / `ItemNotFound` (`detail` shows just the id); give them messages like `ItemAccessDenied`.
+- No authorization: item routes take `user_id` from the path, so anyone can act as any user. Next step: login (`verify_password`, JWT via `PyJWT`) + `OAuth2PasswordBearer` + a `CurrentUserDep`.
+- `ruff check` still reports 8 fixable issues (imports/`UP` rules in `alembic/env.py`, the first migration and `routes/item.py`; `env.py` needs `# noqa: F401` on the `models` import) and `ruff format` would reformat 3 files; `temp.py` in the repo root is a scratch file with undefined names — delete it.
+- No tests (`tests/`), no `.env.example`; no `[tool.ruff]` / `[tool.mypy]` / `[tool.pytest.ini_options]` sections in `pyproject.toml` (the tools themselves are dev dependencies).

@@ -1,3 +1,4 @@
+from typing import Literal
 import uuid
 from datetime import datetime
 
@@ -22,6 +23,11 @@ class ORMReadMixin(BaseModel):
 
 
 # region User
+class Token(BaseModel):
+    acces_token: str
+    token_type: Literal["bearer"] = "bearer"
+
+
 class UserBase(BaseModel):
     """НЕ давать заполнять клиенту"""
 

@@ -17,6 +17,7 @@ dependencies = [
     "starlette>=1.6.0",
     "uvicorn[standard]>=0.52.4",
     "alembic>=1.20.0",
+    "pyjwt>=2.15.1",
 ]
 
 [tool.fastapi]

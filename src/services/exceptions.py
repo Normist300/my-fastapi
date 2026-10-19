@@ -6,6 +6,7 @@ from fastapi import status
 
 class DomainException(Exception):
     status_code: ClassVar[int] = status.HTTP_400_BAD_REQUEST
+    headers: ClassVar[dict[str, str] | None] = None
 
 
 # region Base exc
@@ -21,6 +22,9 @@ class PermissionDeniedError(DomainException):
     status_code = status.HTTP_403_FORBIDDEN
 
 
+class AuthenticationError(DomainException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    headers = {"WWW-Authenticate": "Bearer"}
 # endregion
 
 
@@ -31,6 +35,19 @@ class UserAlreadyExists(AlreadyExistsError): ...
 class UserNotFound(NotFoundError): ...
 
 
+class UserInactive(PermissionDeniedError):
+    def __init__(self) -> None:
+        super().__init__("Inactive user")
+
+
+class InvalidCredentials(AuthenticationError):
+    def __init__(self) -> None:
+        super().__init__("Incorrect email or password")
+
+
+class InvalidToken(AuthenticationError):
+    def __init__(self) -> None:
+        super().__init__("Could not validate credentials")
 # endregion
 
 
