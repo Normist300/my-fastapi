@@ -1,6 +1,6 @@
 # CLAUDE.md — my-fastapi
 
-Project file for **my-fastapi**. The sections from "Tooling" to "Testing" mirror the global conventions (`C:\Users\normist\Claude\CLAUDE.md`) — when a general rule changes, update both files. Everything specific to this repository is at the end, under "This project".
+Project file for **my-fastapi**. The sections from "Tooling" to "Testing" mirror the global conventions (`C:\Users\normist\.claude\CLAUDE.md`) — when a general rule changes, update both files. Everything specific to this repository is at the end, under "This project".
 
 ## Tooling
 
@@ -9,7 +9,7 @@ Project file for **my-fastapi**. The sections from "Tooling" to "Testing" mirror
   - `uv add <pkg>` / `uv add --dev <pkg>` — add a runtime/dev dependency (updates `pyproject.toml` + `uv.lock`)
   - `uv sync` — install/lock dependencies
   - `uv run <command>` — run anything inside the project's venv (`uv run fastapi dev`, `uv run pytest`, `uv run alembic upgrade head`, etc.)
-  - `uv run fastapi dev` needs `fastapi[standard]`; with plain `fastapi` + `uvicorn` run `uv run uvicorn src.main:app --reload`.
+  - `uv run fastapi dev` needs `fastapi[standard]`; with plain `fastapi` + `uvicorn` run `uv run uvicorn <module>:app --reload`.
 - If something about a library or tool looks like it may be outdated (an API, a flag, a recommended pattern), say so and ask whether to check the current docs instead of assuming.
 
 ## Stack
@@ -38,7 +38,7 @@ Default to this layering unless a project's existing code already does something
 - **Services** — business logic. Depend on the Unit of Work (usually via FastAPI `Depends`), not on repositories or the session directly.
 - **Repositories** — one per aggregate/entity, behind an interface (`Protocol` or `ABC`) so they can be swapped for fakes in tests. Own the queries for that entity; no business logic.
 - **Unit of Work** — wraps a transaction/session, exposes the repositories it owns, and commits/rolls back as a single unit. Services call `uow.commit()` explicitly; the UoW's `__aexit__` rolls back unconditionally by default (not only on exception) — an explicit `commit()` beforehand makes the subsequent rollback a no-op on the freshly auto-begun transaction.
-- **Models** — ORM models (SQLAlchemy/SQLModel) kept separate from the Pydantic request/response schemas; don't return ORM objects straight from a router.
+- **Models** — ORM models (SQLAlchemy) kept separate from the Pydantic request/response schemas; don't return ORM objects straight from a router.
   - `Mapped[...]` takes Python types (`Mapped[str]`, `Mapped[datetime]`): never Pydantic types (`Mapped[EmailStr]` fails to map) and never SQL types (`DateTime(timezone=True)` goes inside `mapped_column`). Validation lives in Pydantic schemas; models and repositories don't import Pydantic.
   - `updated_at` needs `onupdate=...`, not just `default=...`. No manual `flush()` for it: `commit()` flushes, and `onupdate` fires only when an `UPDATE` is actually sent (assigning the same values emits nothing, so the timestamp stays).
   - Plain `DeclarativeBase` by default; `MappedAsDataclass` (typed `__init__`, needs `kw_only=True`, `init=False` + `insert_default` for DB-filled fields) only when explicitly wanted.
@@ -72,7 +72,7 @@ For tests, prefer an in-memory/fake Unit of Work + repositories for service-leve
 - Type hints everywhere; the codebase should pass `mypy` (and/or `ty`) cleanly.
 - `ruff check --fix` + `ruff format` for linting/formatting — via `uv run ruff ...`.
 - Prefer `async def` endpoints and async DB access when the project's driver/session setup supports it; don't mix sync and async DB calls in the same path.
-- Keep Pydantic schemas and ORM models named distinctly (e.g. `UserCreate`/`UserRead` vs `User`), even if a project happens to use SQLModel's single-class style — call that out as a deviation from this preference if it comes up.
+- Keep Pydantic schemas and ORM models named distinctly (e.g. `UserCreate`/`UserRead` vs `User`).
 - Type self-returning methods (`__aenter__`, alternative constructors, etc.) with `typing.Self`, not a stringified forward-reference to the class name.
 - Every package directory has an `__init__.py` (without them mypy fails on duplicate module names such as two `base.py`).
 - Use the most modern syntax the project's `requires-python` allows; new projects target Python 3.14 (`requires-python = ">=3.14"`):
@@ -111,7 +111,7 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 - `src/core/security.py` — `hash_password` / `verify_password` (Argon2 via `pwdlib`).
 - `src/repositories/` — `base.py` (`AbstractRepository`, `SQLAlchemyRepository`), `user.py` (`AbstractUserRepository`, `SQLAlchemyUserRepository`), `item.py` (`SQLAlchemyItemRepository`).
 - `src/services/` — `user.py` (`UserService`), `item.py` (`ItemService`), `exceptions.py` (domain exceptions).
-- `src/api/dep.py` — dependencies (`get_uow`, `UoWDep`, `get_user_service` / `UserServiceDep`, `get_item_service` / `ItemServiceDep`); routers in `src/api/v1/routes/` (`user.py`, `item.py`), aggregated by `src/api/v1/main.py` (`api_router`).
+- `src/api/deps.py` — dependencies (`get_uow`, `UoWDep`, `get_user_service` / `UserServiceDep`, `get_item_service` / `ItemServiceDep`); routers in `src/api/v1/routes/` (`user.py`, `item.py`), aggregated by `src/api/v1/main.py` (`api_router`).
 - `alembic/` + `alembic.ini` — migrations (async template); `alembic/env.py` takes the URL from `get_settings().postgres_dsn` and `Base.metadata` as `target_metadata`, models are imported there so autogenerate sees them.
 
 ## Project decisions
