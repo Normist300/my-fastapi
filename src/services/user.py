@@ -25,7 +25,7 @@ class UserService:
             user = User(
                 email=data.email,
                 full_name=data.full_name,
-                hashed_password=hash_password(data.password),
+                hashed_password=hash_password(data.password.get_secret_value()),
             )
             await self.uow.users.add_one(user)
             await self.uow.commit()

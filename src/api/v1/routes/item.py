@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from src.api.dep import ItemServiceDep
+from src.api.deps import ItemServiceDep
 from src.core.db.schemas import (
     ItemCreate,
     ItemRead,
