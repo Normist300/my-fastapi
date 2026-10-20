@@ -20,6 +20,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
 
+
 def create_access_token(user_id: uuid.UUID) -> str:
     settings = get_settings()
     now = datetime.now(UTC)

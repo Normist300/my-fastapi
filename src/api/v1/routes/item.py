@@ -2,41 +2,35 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from src.api.deps import ItemServiceDep
-from src.core.db.schemas import (
-    ItemCreate,
-    ItemRead,
-    ItemUpdate
-)
+from src.api.deps import ItemServiceDep, CurrentUserDep
+from src.core.db.schemas import ItemCreate, ItemRead, ItemUpdate
 
 router = APIRouter(prefix="/items", tags=["items"])
 
 
-@router.post("/{user_id}", status_code=status.HTTP_201_CREATED)
-async def add_item_to_user(
-    user_id: uuid.UUID, data: ItemCreate,
-    service: ItemServiceDep
-    ) -> ItemRead:
-    return await service.create(user_id, data)
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_item(
+    user: CurrentUserDep, data: ItemCreate, service: ItemServiceDep
+) -> ItemRead:
+    return await service.create(user.id, data)
 
 
-@router.get("/{user_id}/{item_id}")
+@router.get("/{item_id}")
 async def get_item(
-    item_id: uuid.UUID, user_id: uuid.UUID,
-    service: ItemServiceDep
-    ) -> ItemRead:
-    return await service.get(item_id, user_id)
+    item_id: uuid.UUID, user: CurrentUserDep, service: ItemServiceDep
+) -> ItemRead:
+    return await service.get(item_id, user.id)
 
 
-@router.patch("/{user_id}/{item_id}")
+@router.patch("/{item_id}")
 async def update_item(
-    item_id: uuid.UUID, user_id: uuid.UUID, data: ItemUpdate,
-    service: ItemServiceDep) -> ItemRead:
-    return await service.update(item_id, user_id, data)
+    item_id: uuid.UUID, user: CurrentUserDep, data: ItemUpdate, service: ItemServiceDep
+) -> ItemRead:
+    return await service.update(item_id, user.id, data)
 
 
-@router.delete("/{user_id}/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(
-    item_id: uuid.UUID, user_id: uuid.UUID,
-    service: ItemServiceDep) -> None:
-    await service.delete(item_id, user_id)
+    item_id: uuid.UUID, user: CurrentUserDep, service: ItemServiceDep
+) -> None:
+    await service.delete(item_id, user.id)

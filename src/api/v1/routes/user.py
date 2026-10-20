@@ -2,8 +2,8 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from src.api.deps import UserServiceDep
-from src.core.db.schemas import UserPublic, UserRegister, UserUpdate
+from src.api.deps import UserServiceDep, CurrentUserDep
+from src.core.db.schemas import UserPublic, UserRegister, UserUpdate, UserRead
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -13,18 +13,24 @@ async def register_user(data: UserRegister, service: UserServiceDep) -> UserPubl
     return await service.register(data)
 
 
+@router.get("/me")
+async def read_me(user: CurrentUserDep) -> UserRead:
+    return user
+
+
 @router.get("/{user_id}")
-async def get_user(user_id: uuid.UUID, service: UserServiceDep) -> UserPublic:
+async def get_user_by_id(user_id: uuid.UUID, service: UserServiceDep) -> UserPublic:
     return await service.get(user_id)
 
 
-@router.patch("/{user_id}")
-async def update_user(
-    user_id: uuid.UUID, data: UserUpdate, service: UserServiceDep
+@router.patch("/me")
+async def update_me(
+    user: CurrentUserDep, data: UserUpdate, service: UserServiceDep
 ) -> UserPublic:
-    return await service.update(user_id, data)
+    return await service.update(user.id, data)
 
 
+# TODO перенести в админку
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: uuid.UUID, service: UserServiceDep) -> None:
     await service.delete(user_id)

@@ -25,6 +25,8 @@ class PermissionDeniedError(DomainException):
 class AuthenticationError(DomainException):
     status_code = status.HTTP_401_UNAUTHORIZED
     headers = {"WWW-Authenticate": "Bearer"}
+
+
 # endregion
 
 
@@ -48,6 +50,8 @@ class InvalidCredentials(AuthenticationError):
 class InvalidToken(AuthenticationError):
     def __init__(self) -> None:
         super().__init__("Could not validate credentials")
+
+
 # endregion
 
 

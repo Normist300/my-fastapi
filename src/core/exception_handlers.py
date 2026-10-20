@@ -9,7 +9,7 @@ async def domain_exception_handler(_: Request, exc: DomainException) -> JSONResp
         status_code=exc.status_code,
         content={"detail": str(exc)},
         headers=exc.headers,
-        )
+    )
 
 
 def register_exception_handlers(app: FastAPI) -> None:

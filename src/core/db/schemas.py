@@ -24,7 +24,7 @@ class ORMReadMixin(BaseModel):
 
 # region User
 class Token(BaseModel):
-    acces_token: str
+    access_token: str
     token_type: Literal["bearer"] = "bearer"
 
 
@@ -86,6 +86,8 @@ class ItemRead(ItemBase, IDMixin, TimestampMixin, ORMReadMixin): ...
 
 
 class ItemPublic(ItemRead): ...
+
+
 # endregion
 
 
