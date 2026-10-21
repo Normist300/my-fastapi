@@ -2,7 +2,7 @@ from typing import Literal
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr, field_validator
 
 
 # region Mixins
@@ -79,7 +79,16 @@ class ItemCreate(ItemBase):
 
 class ItemUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
+    # если pydantic >= 2.14 (вышел 8 октября 2026), то можно так: (вместо title_is_not_null)
+    # title: str | MISSING = Field(default=MISSING, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=255)
+
+    @field_validator("title")
+    @classmethod
+    def title_is_not_null(cls, value: str | None) -> str | None:
+        if value is None:
+            raise ValueError("title cannot be null")
+        return value
 
 
 class ItemRead(ItemBase, IDMixin, TimestampMixin, ORMReadMixin): ...
