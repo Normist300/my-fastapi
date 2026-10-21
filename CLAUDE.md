@@ -70,7 +70,7 @@ Default to this layering unless a project's existing code already does something
 - **Dependencies** (`api/deps.py` — the composition root, lives in the API layer because it's FastAPI-specific): `get_uow()` is a plain function returning `AbstractUnitOfWork` (not a `yield` dependency — commits stay in services); expose `Annotated` aliases (`UoWDep`, `UserServiceDep`); no session dependency for routers. Tests swap implementations via `app.dependency_overrides[get_uow]`.
 - **Auth (OAuth2 password flow + JWT)**: `core/security.py` holds password hashing and `create_access_token` / `decode_access_token` (PyJWT, `sub` = user id, `exp` required; any decode error → `InvalidToken`). `AuthService.login(email, password)` checks the password *before* `is_active` (only someone who knows the password learns the account is inactive), verifies against a `DUMMY_HASH` when the email is unknown (same timing), and uses one generic message ("Incorrect email or password"); the login route takes `OAuth2PasswordRequestForm` (`username` carries the email). `get_current_user` in `api/deps.py` (`OAuth2PasswordBearer(tokenUrl=<full login path>)` → `AuthService.get_current_user`) reloads the user from the DB on every request and checks `is_active`, so deleted/deactivated users lose access before `exp`; routes get it as `CurrentUserDep`. The acting user's id always comes from the token, never from the path or body. Tokens are stateless: logout is client-side and revocation is only via `is_active`, so access tokens stay short-lived.
 
-For tests, prefer an in-memory/fake Unit of Work + repositories for service-level unit tests, and a real UoW against a test database for integration tests.
+For tests, services and API run with the real `SQLAlchemyUnitOfWork` against a test database (see Testing); fakes behind the same abstract interfaces only for dependencies that can't run locally.
 
 ## Code style
 
@@ -88,8 +88,11 @@ For tests, prefer an in-memory/fake Unit of Work + repositories for service-leve
 
 ## Testing
 
-- pytest, with fixtures for a test database/session and a fake Unit of Work.
-- Fake repositories set `id`, `created_at`, `updated_at` themselves: ORM column defaults are applied only on `flush()`, so without a DB they stay `None` and response-schema validation fails.
+- pytest + pytest-asyncio (`asyncio_mode = "auto"`, `asyncio_default_fixture_loop_scope` set explicitly), configured in the native `[tool.pytest]` table (pytest 9+) with `pythonpath = ["."]`.
+- Test doubles by fidelity: the real implementation first, then a fake, a mock only as a last resort. Your own database is always real: services, repositories and API run against a dedicated test Postgres database, each test isolated by rolling back its transaction. Fakes are for dependencies that can't run locally (external APIs, email, payments). No mocks that assert on call sequences — they test the implementation, not the behavior.
+- A fake implements the same abstract interface as the real thing and fills in whatever the real dependency would (e.g. DB-side defaults: ORM column defaults are applied only on `flush()`, so without a DB `id`, `created_at`, `is_active` stay `None`).
+- Test settings: `conftest.py` writes test values (`SECRET_KEY`, `POSTGRES_DSN`) to `os.environ` before anything imports `src` — env vars override `.env`, and `get_settings()` is `lru_cache`d. Per-test changes go through `monkeypatch.setattr(get_settings(), ...)`, which is undone after the test.
+- Test what can break the app — own logic, own configuration of libraries (e.g. `options={"require": [...]}` in `jwt.decode`), error paths — not the library itself or plain declarations (`model_fields`, status-code class attributes): check those through behavior in service/API tests. A negative test must fail for the intended reason only (break exactly one thing; keep a control test that the unbroken input passes).
 - One test module per feature/router; name tests after the behavior, not the function.
 - Run the full suite via `uv run pytest` before considering backend work done.
 
