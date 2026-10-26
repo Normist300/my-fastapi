@@ -1,7 +1,7 @@
 import os
 
 os.environ["SECRET_KEY"] = ("test_key" + "*"*32)
-os.environ["POSTGRES_DSN"] = "postgresql+asyncpg://test:test@localhost:5432/my_fastapi_test"
+os.environ["POSTGRES_DSN"] = "postgresql+asyncpg://user:password@localhost:5432/my_fastapi_test"
 
 from collections.abc import AsyncGenerator
 
@@ -22,7 +22,7 @@ from src.main import app
 from src.api.deps import get_uow
 
 @pytest.fixture(scope="session")
-def migration_db() -> None:
+def migrated_db() -> None:
     dsn = get_settings().postgres_dsn.get_secret_value()
     assert dsn.endswith("_test"), "тесты запускаются только на тестовой БД (в названии бд в конце не '_test')"
     command.upgrade(Config("alembic.ini"), "head")
