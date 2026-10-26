@@ -30,7 +30,6 @@ async def update_me(
     return await service.update(user.id, data)
 
 
-# TODO перенести в админку
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: uuid.UUID, service: UserServiceDep) -> None:
-    await service.delete(user_id)
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user: CurrentUserDep, service: UserServiceDep) -> None:
+    await service.delete(user.id)
