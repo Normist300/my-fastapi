@@ -12,7 +12,7 @@ from src.core.security import (
     verify_password,
 )
 from src.services.exceptions import InvalidToken
-from tests.helpers import make_token
+from tests.unit.helpers import make_token
 
 
 def test_access_token_round_trip_returns_same_user_id() -> None:

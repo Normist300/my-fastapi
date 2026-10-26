@@ -1,6 +1,6 @@
 import uuid
 
-from tests.helpers import make_token
+from tests.unit.helpers import make_token
 from src.core.security import decode_access_token
 
 
