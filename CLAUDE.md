@@ -30,6 +30,7 @@ FastAPI, Pydantic v2, SQLAlchemy 2.0 (async) + Pydantic (no SQLModel), Alembic f
 - `create_async_engine(..., pool_pre_ping=True)` to avoid stale pooled connections.
 - `async_sessionmaker(engine, expire_on_commit=False)` — required for usable attribute access on ORM objects after `commit()` in async code.
 - Local Postgres via Docker Compose (official `postgres` image, named volume for persistence). Note: the data volume path changed with Postgres 18 (`/var/lib/postgresql`, not the older `/var/lib/postgresql/data`) — check the image's docs when bumping the major version.
+- Publish the port as `127.0.0.1:5432:5432` (a bare `5432:5432` listens on every interface). `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` are applied only when the volume is first initialised: change a password later with `ALTER USER` (`docker compose exec postgres psql -U <user> -d postgres -c "..."`), create extra databases (the test DB) with `docker compose exec postgres createdb -U <user> <name>`. `exec` runs inside the running container and connects over the local socket, so no password is asked.
 
 ## Architecture: Repository + Unit of Work
 
@@ -60,7 +61,7 @@ Default to this layering unless a project's existing code already does something
   - One public method = one `async with self.uow:` block = one transaction; commit explicitly with `await self.uow.commit()`.
   - Build the response schema (`UserPublic.model_validate(obj)`) inside the block and return Pydantic, never ORM objects. Relationships a response needs are loaded in the repository (`selectinload`) — lazy loading after the session closes fails in async.
   - Build ORM objects from schemas with explicit fields (`User(email=data.email, ...)`), not `**data.model_dump()`, so new schema fields can't leak into the DB.
-  - Updates: a separate update schema with optional fields (PATCH semantics) and `model_dump(exclude_unset=True)`; apply it with explicit assignments, or a `setattr` loop only over an explicit allow-list of fields (the schema alone must not be the only guard — an `owner_id` added later would become writable). Never let `None` through for non-nullable columns.
+  - Updates: a separate update schema with optional fields (PATCH semantics) and `model_dump(exclude_unset=True)`; apply it with explicit assignments, or a `setattr` loop only over an explicit allow-list of fields (the schema alone must not be the only guard — an `owner_id` added later would become writable). Never let `None` through for non-nullable columns: reject an explicit `null` in the update schema — a `@field_validator` that raises on `None` (defaults aren't validated, so an omitted field still passes) or, on Pydantic 2.14+, the `MISSING` sentinel (`title: str | MISSING = Field(default=MISSING, ...)`) — not by skipping `None` in the service, which also blocks clearing nullable fields.
   - Repeated "load or raise" goes into a private helper (`async def _get_or_raise(self, id) -> User`, always `await`ed) used inside the `async with self.uow:` block.
   - Deletes: the service loads the object (raising `NotFound`), then calls `repo.delete(obj)`; the repository takes the already-loaded object and never silently no-ops. The second lookup would hit the session's identity map anyway (one session = one `async with self.uow:` block), but passing the object keeps it explicit.
   - Don't call another service's method inside an open `async with self.uow:` — FastAPI caches `get_uow` per request, so services share one UoW instance, and re-entering it replaces `self.session` (the outer work is silently lost).
@@ -88,19 +89,28 @@ For tests, services and API run with the real `SQLAlchemyUnitOfWork` against a t
 
 ## Testing
 
-- pytest + pytest-asyncio (`asyncio_mode = "auto"`, `asyncio_default_fixture_loop_scope` set explicitly), configured in the native `[tool.pytest]` table (pytest 9+) with `pythonpath = ["."]`.
+- pytest + pytest-asyncio, configured in the native `[tool.pytest]` table (pytest 9+): `pythonpath = ["."]`, `asyncio_mode = "auto"`, and both `asyncio_default_fixture_loop_scope` and `asyncio_default_test_loop_scope` set to `"session"` — the session-scoped engine's asyncpg connections are bound to the event loop they were opened in.
+- Layout: `tests/unit/` (pure logic: no DB, no app import) and `tests/integration/` (test DB + HTTP). The top-level `tests/conftest.py` only writes test env values; DB and client fixtures live in `tests/integration/conftest.py` (a `conftest.py` is loaded by pytest and visible to its directory and below). Shared constants, type aliases and helpers go in `tests/helpers.py` — tests don't import from a `conftest.py`.
 - Test doubles by fidelity: the real implementation first, then a fake, a mock only as a last resort. Your own database is always real: services, repositories and API run against a dedicated test Postgres database, each test isolated by rolling back its transaction. Fakes are for dependencies that can't run locally (external APIs, email, payments). No mocks that assert on call sequences — they test the implementation, not the behavior.
 - A fake implements the same abstract interface as the real thing and fills in whatever the real dependency would (e.g. DB-side defaults: ORM column defaults are applied only on `flush()`, so without a DB `id`, `created_at`, `is_active` stay `None`).
 - Test settings: `conftest.py` writes test values (`SECRET_KEY`, `POSTGRES_DSN`) to `os.environ` before anything imports `src` — env vars override `.env`, and `get_settings()` is `lru_cache`d. Per-test changes go through `monkeypatch.setattr(get_settings(), ...)`, which is undone after the test.
-- Test what can break the app — own logic, own configuration of libraries (e.g. `options={"require": [...]}` in `jwt.decode`), error paths — not the library itself or plain declarations (`model_fields`, status-code class attributes): check those through behavior in service/API tests. A negative test must fail for the intended reason only (break exactly one thing; keep a control test that the unbroken input passes).
-- One test module per feature/router; name tests after the behavior, not the function.
-- Run the full suite via `uv run pytest` before considering backend work done.
+- Test DB fixtures (`tests/integration/conftest.py`): a separate `<db>_test` database; a session-scoped **sync** fixture guards the DSN (`assert dsn.endswith("_test")`) and runs `command.upgrade(Config("alembic.ini"), "head")` (sync because the async `env.py` calls `asyncio.run`); a session-scoped `engine`; a per-test `connection` with an outer transaction rolled back after the test; `async_sessionmaker(bind=connection, expire_on_commit=False, join_transaction_mode="create_savepoint")`, so the services' `commit()` only releases a SAVEPOINT; the real `SQLAlchemyUnitOfWork` on top, injected with `app.dependency_overrides[get_uow] = lambda: uow` and cleared after the test; `httpx.AsyncClient(transport=ASGITransport(app=app), base_url=f"http://test{api_v1_prefix}")` (it doesn't run `lifespan`).
+- Logged-in users come from a factory fixture (`make_user(email) -> auth headers`: register + log in). Login is a form (`data=`, not `json=`); request paths match the route exactly (an extra trailing slash → 307 redirect, which httpx doesn't follow). State the API can't produce (an inactive user) is set up through the same `uow` fixture.
+- Assert status codes and the values that express business rules: data round-trips, ownership (403 on someone else's object, which stays in place), 404 after delete, the same 401 + `WWW-Authenticate` for a wrong password and an unknown email, 403 for an inactive user only with the correct password, tokens of deactivated/deleted users stop working. Don't assert response field sets or whole bodies — response schemas are the allow-list, and repeating them is a change-detector test.
+- One global guard for data that must never leave the server: secret columns are marked `mapped_column(info={"secret": True})`; `SECRET_FIELDS` is collected from `Base.registry.mappers` (import the models module first and assert the set is non-empty); an httpx `event_hooks={"response": [...]}` check (`await response.aread()` first) fails on any response that contains one.
+- Test what can break the app — own logic, own configuration of libraries (e.g. `options={"require": [...]}` in `jwt.decode`), error paths — not the library itself or plain declarations (`model_fields`, status-code class attributes): check those through behavior in service/API tests. A negative test must fail for the intended reason only (break exactly one thing; keep a control test that the unbroken input passes), and every new test is seen failing once (break the code or the input temporarily).
+- Test helpers don't copy the code under test: produce valid input with the public function and break one thing through a setting (`monkeypatch` the key, the expiry); build raw input by hand only where it comes from outside (a token without `sub`). Field and column names come from the code (`User.is_superuser.key`, column `info`), never hardcoded strings that keep passing after a rename. `assert` on a generator is always true — collect a list (`leaked = [...]; assert not leaked, msg`) or use `all()`.
+- A known open bug gets a test marked `@pytest.mark.xfail(reason=..., strict=True)` until it's fixed.
+- One test module per feature/router; name tests after the behavior, not the function: `test_<subject>_<condition>_<outcome>` in snake_case. Name `parametrize` cases with `pytest.param(..., id="...")`.
+- Run the full suite via `uv run pytest` before considering backend work done (integration tests need Docker running).
 
 ## Working style
 
 - Show the modern, idiomatic pattern first; when something is unclear, explain the mechanism instead of falling back to a simplified version.
 - When an edit is approved, change only the files that were named; if more files are needed for it to work, list them and ask first.
 - Questions about code ("why", "how does this work") are answered without editing anything.
+- Example code handed to the user is run first (a scratch copy of the project, a temporary or test DB), and the reply says whether it was verified.
+- Give one settled recommendation. When the user pushes back, re-evaluate honestly and restate the final rule in one place instead of amending it piece by piece.
 
 ---
 
@@ -121,6 +131,7 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 - `src/services/` — `user.py` (`UserService`), `item.py` (`ItemService`), `auth.py` (`AuthService`: `login`, `get_current_user`), `exceptions.py` (domain exceptions).
 - `src/api/deps.py` — dependencies (`get_uow`, `UoWDep`, `get_user_service` / `UserServiceDep`, `get_item_service` / `ItemServiceDep`, `get_auth_service` / `AuthServiceDep`, `oauth2_scheme`, `get_current_user` / `CurrentUserDep`); routers in `src/api/v1/routes/` (`user.py`, `item.py`, `auth.py`), aggregated by `src/api/v1/main.py` (`api_router`).
 - `alembic/` + `alembic.ini` — migrations (async template); `alembic/env.py` takes the URL from `get_settings().postgres_dsn` and `Base.metadata` as `target_metadata`, models are imported there so autogenerate sees them.
+- `tests/` — `conftest.py` (test `SECRET_KEY` / `POSTGRES_DSN` → `my_fastapi_test`), `helpers.py` (`SECRET_FIELDS`, `PASSWORD`, `AuthHeaders` / `MakeUser`); `unit/` (`test_security.py` with its own `helpers.py` / `make_token`, `test_helpers.py`, `test_schemas.py`); `integration/` (`conftest.py`: `migrated_db`, `engine`, `connection`, `uow`, `client` with the `check_no_secret` response hook; `test_users.py`, `test_auth.py`).
 
 ## Project decisions
 
@@ -133,7 +144,10 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 - Password hashing: `pwdlib` (`PasswordHash.recommended()`, Argon2id) — not `passlib`. The salt lives inside the hash string, so `User` has a single `hashed_password` column.
 - `repo.delete(id)` does `session.get` + `session.delete`: the second lookup hits the session's identity map (no extra query), so keeping the id-based signature is accepted for now. Passing the loaded object (`delete(obj)`) is the stricter option from the general rules, not a bug.
 
-- Auth: OAuth2 password flow + JWT access token, no refresh tokens yet. `POST /auth/login` (form-data) → `Token`; protected routes take `CurrentUserDep` (`UserRead`). Item routes are `/items/` and `/items/{item_id}` for the current user; self-service is under `/users/me`; `POST /users/` (registration) and `GET /users/{user_id}` (`UserPublic`) stay public.
+- Auth: OAuth2 password flow + JWT access token, no refresh tokens yet. `POST /auth/login` (form-data) → `Token`; protected routes take `CurrentUserDep` (`UserRead`). Item routes are `/items/` and `/items/{item_id}` for the current user; self-service is under `/users/me` (`GET`, `PATCH`, `DELETE`); `POST /users/` (registration) and `GET /users/{user_id}` (`UserPublic`) stay public.
+- `ItemUpdate.title` rejects an explicit `null` with a `field_validator` (the `MISSING`-sentinel version is left commented in `schemas.py` for when the project moves to Pydantic 2.14+); `ItemService.update` applies whatever was sent, so `{"description": null}` clears the description.
+- `User.hashed_password` is marked `info={"secret": True}`; tests collect such columns into `SECRET_FIELDS` and fail on any response that contains one.
+- Tests: no fakes for the own DB (the decision and its reasons are in Testing); unit tests cover `security.py` and the `ItemUpdate` validator only — tests that duplicate declarations or library behavior (salted hashes differ, `model_fields`, field sets of responses) were dropped on purpose.
 
 ## Local dev
 
@@ -141,6 +155,7 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 - `.env` (gitignored): `POSTGRES_DSN=postgresql+asyncpg://user:password@localhost:5432/my_fastapi` (matches the compose file); add `DEBUG=true` locally if wanted. `SECRET_KEY` (JWT signing key) is generated with `uv run python -c "import secrets; print(secrets.token_hex(32))"`; changing it invalidates every issued token.
 - Migrations: `uv run alembic revision --autogenerate -m "<message>"` (review the generated file in `alembic/versions/`), then `uv run alembic upgrade head`; `uv run alembic current` shows the revision, `uv run alembic downgrade -1` rolls back one step. `Target database is not up to date` on autogenerate means the existing migrations aren't applied to this DB yet — run `upgrade head` first.
 - Run: `uv run fastapi dev` (dev, reload, 127.0.0.1:8000) / `uv run fastapi run` (prod mode, 0.0.0.0); deps have `fastapi[standard]`. `uv run uvicorn src.main:app --reload` also works. Docs at `/docs`.
+- Tests: `docker compose exec postgres createdb -U user my_fastapi_test` once; the `migrated_db` fixture applies the migrations itself. `uv run pytest` (needs Docker for `tests/integration/`), `uv run pytest tests/unit` without it.
 - Checks: `uv run ruff check --diff` (preview, writes nothing), `uv run ruff check --fix`, `uv run ruff format`, `uv run mypy src`, `uv run pytest`. Commit before running `--fix` so its changes can be reverted with `git restore .`.
 
 ## Status / TODO
@@ -148,7 +163,8 @@ Learning project: FastAPI + async SQLAlchemy with Repository + Unit of Work.
 Keep this section current.
 
 - Exceptions have no readable messages for `UserNotFound` / `UserAlreadyExists` / `ItemNotFound` (`detail` shows just the id); give them messages like `ItemAccessDenied`.
-- `DELETE /users/{user_id}` has no `CurrentUserDep` — anyone can delete any user (with their items). Make it `DELETE /users/me` until there's an admin role (`is_superuser` + a superuser dependency).
 - Refresh tokens (long sessions without long-lived access tokens) — later.
-- `ruff check` still reports 8 fixable issues (imports/`UP` rules in `alembic/env.py`, the first migration and `routes/item.py`; `env.py` needs `# noqa: F401` on the `models` import) and `ruff format` would reformat 3 files; `temp.py` in the repo root is a scratch file with undefined names — delete it.
-- No tests (`tests/`); no `[tool.ruff]` / `[tool.mypy]` / `[tool.pytest.ini_options]` sections in `pyproject.toml` (the tools themselves are dev dependencies).
+- `ruff check` reports 27 issues (26 fixable: mostly import sorting, unused imports, `UP` rules) and `ruff format` would reformat 6 files; `temp.py` in the repo root is a scratch file with undefined names — delete it. `mypy src tests` is clean.
+- Tests: unit tests done; integration tests for users and auth started, items still to write (someone else's item → 403 and stays, 404 after delete, PATCH keeps unsent fields / clears `description` / rejects `title: null`, deleting a user deletes their items). The unreadable-404 exception messages above will show up there as failing tests.
+- `docker-compose.yml` publishes Postgres as `5432:5432` (all interfaces) — bind it to `127.0.0.1:5432:5432`.
+- No `[tool.ruff]` / `[tool.mypy]` sections in `pyproject.toml` (`[tool.pytest]` is configured).
