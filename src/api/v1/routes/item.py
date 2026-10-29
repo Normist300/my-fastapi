@@ -15,6 +15,11 @@ async def create_item(
     return await service.create(user.id, data)
 
 
+@router.get("/")
+async def get_all_items(user: CurrentUserDep, service: ItemServiceDep) -> list[ItemRead]:
+    return await service.get_all_users_item(user.id)
+
+
 @router.get("/{item_id}")
 async def get_item(
     item_id: uuid.UUID, user: CurrentUserDep, service: ItemServiceDep

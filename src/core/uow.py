@@ -5,13 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.core.db.models import Item
 from src.repositories.base import AbstractRepository
-from src.repositories.item import SQLAlchemyItemRepository
+from src.repositories.item import SQLAlchemyItemRepository, AbstractItemRepository
 from src.repositories.user import AbstractUserRepository, SQLAlchemyUserRepository
 
 
 class AbstractUnitOfWork(ABC):
     users: AbstractUserRepository
-    items: AbstractRepository[Item]
+    items: AbstractItemRepository
 
     async def __aenter__(self) -> Self:
         return self

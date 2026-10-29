@@ -11,9 +11,13 @@ TITLE = "title"
 DESCRIPTION = "description"
 
 
-async def create_item(client: AsyncClient, headers: AuthHeaders) -> str:
+async def create_item(
+        client: AsyncClient,
+        headers: AuthHeaders,
+        title: str = TITLE,
+        description: str = DESCRIPTION) -> str:
     response = await client.post(
-        "/items/", headers=headers, json={"title": TITLE, "description": DESCRIPTION}
+        "/items/", headers=headers, json={"title": title, "description": description}
     )
     assert response.status_code == 201, response.text
     return response.json()["id"]
@@ -59,6 +63,25 @@ async def test_item_of_other_user_is_forbidden_and_stays_unchanged(
     owner_view = await client.get(f"/items/{item_id}", headers=owner_headers)
     assert owner_view.status_code == 200
     assert owner_view.json()["title"] == TITLE
+
+
+async def test_all_users_item_is_gotten(
+        client: AsyncClient,
+        make_user: MakeUser,
+) -> None:
+    email = "owner@examle.com"
+    headers = await make_user(email)
+    id_item_1 = await create_item(client, headers, "item_1", "desc_1")
+    id_item_2 = await create_item(client, headers, "item_2", "desc_2")
+
+    response = await client.get("/items/", headers=headers)
+
+    assert response.status_code == 200
+    body: list = response.json()
+    ids = [item['id'] for item in body]
+    assert id_item_1 in ids and id_item_2 in ids
+    
+
 
 
 async def test_item_patch_persists_new_values(

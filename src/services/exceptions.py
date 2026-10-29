@@ -31,11 +31,14 @@ class AuthenticationError(DomainException):
 
 
 # region User
-class UserAlreadyExists(AlreadyExistsError): ...
+class UserAlreadyExists(AlreadyExistsError):
+    def __init__(self, user_id: uuid.UUID) -> None:
+        super().__init__("User with id={user_id} already exists")
 
 
-class UserNotFound(NotFoundError): ...
-
+class UserNotFound(NotFoundError): 
+    def __init__(self, user_id: uuid.UUID) -> None:
+        super().__init__("User with id={user_id} not found")
 
 class UserInactive(PermissionDeniedError):
     def __init__(self) -> None:

@@ -36,6 +36,14 @@ class ItemService:
 
             return ItemRead.model_validate(item)
 
+    async def get_all_users_item(self, user_id: uuid.UUID) -> list[ItemRead]:
+        async with self.uow:
+            items = await self.uow.items.get_all_users_item(user_id)
+            if items is None:
+                raise ItemNotFound("No any items!")
+
+            return [ItemRead.model_validate(item) for item in items]
+
     async def update(
         self, item_id: uuid.UUID, user_id: uuid.UUID, data: ItemUpdate
     ) -> ItemRead:
