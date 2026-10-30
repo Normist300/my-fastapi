@@ -65,14 +65,17 @@ async def test_item_of_other_user_is_forbidden_and_stays_unchanged(
     assert owner_view.json()["title"] == TITLE
 
 
-async def test_all_users_item_is_gotten(
+async def test_all_users_item_is_gotten_without_others_users_item(
         client: AsyncClient,
         make_user: MakeUser,
 ) -> None:
     email = "owner@examle.com"
+    email_other = "other@examle.com"
     headers = await make_user(email)
+    headers_other = await make_user(email_other)
     id_item_1 = await create_item(client, headers, "item_1", "desc_1")
     id_item_2 = await create_item(client, headers, "item_2", "desc_2")
+    id_item_other = await create_item(client, headers_other, "item_other", "desc_other")
 
     response = await client.get("/items/", headers=headers)
 
@@ -80,6 +83,7 @@ async def test_all_users_item_is_gotten(
     body: list = response.json()
     ids = [item['id'] for item in body]
     assert id_item_1 in ids and id_item_2 in ids
+    assert id_item_other not in ids
     
 
 

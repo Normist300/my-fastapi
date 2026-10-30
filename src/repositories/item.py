@@ -16,5 +16,5 @@ class SQLAlchemyItemRepository(SQLAlchemyRepository[Item], AbstractItemRepositor
     model = Item
 
     async def get_all_users_item(self, user_id: uuid.UUID) -> list[Item] | None:
-        result = await self.session.execute(select(Item).where(User.id == user_id))
+        result = await self.session.execute(select(Item).where(Item.owner_id == user_id))
         return list(result.scalars().all())

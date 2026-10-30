@@ -1,0 +1,3 @@
+interface:
+  display_name: "my-fastapi"
+  short_description: "Правила разработки и тестирования my-fastapi"
