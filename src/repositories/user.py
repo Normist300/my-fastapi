@@ -1,9 +1,12 @@
 from abc import abstractmethod
 
+from asyncpg import UniqueViolationError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from src.core.db.models import User
 from src.repositories.base import AbstractRepository, SQLAlchemyRepository
+from src.services.exceptions import UserAlreadyExistsRepo
 
 
 class AbstractUserRepository(AbstractRepository[User]):
@@ -13,6 +16,23 @@ class AbstractUserRepository(AbstractRepository[User]):
 
 class SQLAlchemyUserRepository(SQLAlchemyRepository[User], AbstractUserRepository):
     model = User
+
+    async def add_one(self, obj: User) -> User:
+        try:
+            return await super().add_one(obj)
+        except IntegrityError as exc:
+            original = exc.orig
+            cause = original.__cause__ if original is not None else None
+
+            if (
+                isinstance(cause, UniqueViolationError) # Ошибка вызвана нарушением уникальности (уже существует с таким значением)
+                and getattr(cause, "constraint_name", None) == "ix_user_email" # Ошибка именно из-за email
+            ):
+                raise UserAlreadyExistsRepo(obj.email)
+
+            raise
+
+
 
     async def get_by_email(self, email: str) -> User | None:
         result = await self.session.execute(select(User).where(User.email == email))

@@ -32,13 +32,18 @@ class AuthenticationError(DomainException):
 
 # region User
 class UserAlreadyExists(AlreadyExistsError):
-    def __init__(self, user_id: uuid.UUID) -> None:
-        super().__init__("User with id={user_id} already exists")
+    def __init__(self, email: str) -> None:
+        super().__init__(f"User with email={email} already exists")
+
+
+class UserAlreadyExistsRepo(AlreadyExistsError):
+    def __init__(self, email: str) -> None:
+        super().__init__(f"User with email={email} already exists. Layer: repo")
 
 
 class UserNotFound(NotFoundError): 
     def __init__(self, user_id: uuid.UUID) -> None:
-        super().__init__("User with id={user_id} not found")
+        super().__init__(f"User with id={user_id} not found")
 
 class UserInactive(PermissionDeniedError):
     def __init__(self) -> None:

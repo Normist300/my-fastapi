@@ -1,7 +1,15 @@
+import asyncio
+
 from httpx import AsyncClient
 import pytest
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from src.core.uow import AbstractUnitOfWork
+from src.api.deps import get_uow
+from src.core.db.models import User
+from src.main import app
+from src.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
+from src.repositories.user import SQLAlchemyUserRepository
 from src.services.exceptions import UserAlreadyExists
 from tests.helpers import PASSWORD, AuthHeaders, MakeUser
 
@@ -57,3 +65,88 @@ async def test_user_try_get_admin_access_is_ignore(client: AsyncClient, make_use
     body = response.json()
     assert body["is_superuser"] == False
     assert body["full_name"] == "cool_name"
+
+
+async def test_concurrent_registration_returns_201_and_409(
+        client: AsyncClient,
+        engine: AsyncEngine,
+        monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Делаем два одинаковых запроса, но в разных ПОДКЛЮЧЕНИЯХ
+    В фикстурах UoW делается в одном подключении. Поэтому переопределяем
+    """
+
+    email = "test@example.com"
+    json_post = {"email": email, "password": PASSWORD}
+
+    # Для получения разных connections
+    session_factory = async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+    )
+
+    def get_uow_new() -> SQLAlchemyUnitOfWork:
+        return SQLAlchemyUnitOfWork(session_factory)
+
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        get_uow,
+        get_uow_new,
+    )
+
+    barrier = asyncio.Barrier(2)
+    original_get_by_email = SQLAlchemyUserRepository.get_by_email
+
+    async def sync_get_by_email(
+            self: SQLAlchemyUserRepository,
+            email_to_find: str,
+    ) -> User | None:
+        user = await original_get_by_email(self, email_to_find)
+
+        if email_to_find == email:
+            assert user is None
+
+            await barrier.wait()
+
+        return user
+
+    monkeypatch.setattr(
+        SQLAlchemyUserRepository,
+        "get_by_email",
+        sync_get_by_email,
+    )
+
+    try:
+        async with asyncio.timeout(15): # Ограничиваем по времени, чтобы ничего не упало
+            async with asyncio.TaskGroup() as group:
+                first = group.create_task(
+                    client.post("/users/", json=json_post)
+                )
+                second = group.create_task(
+                    client.post("/users/", json=json_post)
+                )
+
+            responses = [first.result(), second.result()]
+            assert sorted([r.status_code for r in responses]) == [201, 409], [(r.status_code, r.text) for r in responses]
+
+            success = next(r for r in responses if r.status_code == 201)
+            assert success.json()["email"] == email
+
+            # Проверка состояния до коммита отдельной сессией
+            async with session_factory() as session:
+                result = await session.scalars(
+                    select(User).where(User.email == email)
+                )
+                users = result.all()
+
+                assert len(users) == 1
+                assert str(users[0].id) == success.json()["id"]
+
+    finally:
+        # удаляем записи, так как у нас коммиты были в соединении
+        # без "create_savepoint"
+        async with session_factory.begin() as session:
+            await session.execute(
+                delete(User).where(User.email == email)
+            )
