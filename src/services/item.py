@@ -36,11 +36,14 @@ class ItemService:
 
             return ItemRead.model_validate(item)
 
-    async def get_all_users_item(self, user_id: uuid.UUID) -> list[ItemRead]:
+    async def get_all_users_item(self,
+                                 user_id: uuid.UUID,
+                                 *,
+                                 limit: int,
+                                 offset: int,                                 
+                                 ) -> list[ItemRead]:
         async with self.uow:
-            items = await self.uow.items.get_all_users_item(user_id)
-            if items is None:
-                raise ItemNotFound("No any items!")
+            items = await self.uow.items.get_all_users_item(user_id, limit=limit, offset=offset)
 
             return [ItemRead.model_validate(item) for item in items]
 

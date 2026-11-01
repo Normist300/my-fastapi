@@ -1,6 +1,7 @@
+from typing import Annotated
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
 from src.api.deps import ItemServiceDep, CurrentUserDep
 from src.core.db.schemas import ItemCreate, ItemRead, ItemUpdate
@@ -16,8 +17,11 @@ async def create_item(
 
 
 @router.get("/")
-async def get_all_items(user: CurrentUserDep, service: ItemServiceDep) -> list[ItemRead]:
-    return await service.get_all_users_item(user.id)
+async def get_all_items(user: CurrentUserDep, service: ItemServiceDep,
+                        limit: Annotated[int, Query(ge=1, le=100)] = 20,
+                        offset: Annotated[int, Query(ge=0)] = 0,
+                        ) -> list[ItemRead]:
+    return await service.get_all_users_item(user.id, limit=limit, offset=offset)
 
 
 @router.get("/{item_id}")
