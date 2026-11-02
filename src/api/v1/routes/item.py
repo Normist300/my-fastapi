@@ -17,10 +17,12 @@ async def create_item(
 
 
 @router.get("/")
-async def get_all_items(user: CurrentUserDep, service: ItemServiceDep,
-                        limit: Annotated[int, Query(ge=1, le=100)] = 20,
-                        offset: Annotated[int, Query(ge=0)] = 0,
-                        ) -> list[ItemRead]:
+async def get_all_items(
+    user: CurrentUserDep,
+    service: ItemServiceDep,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[ItemRead]:
     return await service.get_all_users_item(user.id, limit=limit, offset=offset)
 
 
@@ -36,6 +38,11 @@ async def update_item(
     item_id: uuid.UUID, user: CurrentUserDep, data: ItemUpdate, service: ItemServiceDep
 ) -> ItemRead:
     return await service.update(item_id, user.id, data)
+
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_all_item(user: CurrentUserDep, service: ItemServiceDep) -> None:
+    await service.delete_all(user.id)
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
