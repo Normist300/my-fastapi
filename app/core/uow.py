@@ -33,7 +33,9 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
         self.session_factory = session_factory
 
     async def __aenter__(self) -> Self:
-        self.session = self.session_factory()
+        self.session = self.session_factory(
+            close_resets_only=False
+        )  # close_resets_only=False нужен, чтобы не забывать открывать async with self.uow: в сервисах
         self.users = SQLAlchemyUserRepository(self.session)
         self.items = SQLAlchemyItemRepository(self.session)
         return self

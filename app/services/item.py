@@ -74,7 +74,8 @@ class ItemService:
             await self.uow.commit()
 
     async def delete_all(self, user_id: uuid.UUID) -> None:
-        if await self.uow.items.count_by_owner(user_id) == 0:
-            raise ItemNotFound()
-        await self.uow.items.delete_all(user_id)
-        await self.uow.commit()
+        async with self.uow:
+            if await self.uow.items.count_by_owner(user_id) == 0:
+                raise ItemNotFound()
+            await self.uow.items.delete_all(user_id)
+            await self.uow.commit()
