@@ -4,9 +4,9 @@ from asyncpg import UniqueViolationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from src.core.db.models import User
-from src.repositories.base import AbstractRepository, SQLAlchemyRepository
-from src.services.exceptions import UserAlreadyExistsRepo
+from app.db.models import User
+from app.repositories.base import AbstractRepository, SQLAlchemyRepository
+from app.services.exceptions import UserAlreadyExistsRepo
 
 
 class AbstractUserRepository(AbstractRepository[User]):

@@ -11,10 +11,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from httpx import ASGITransport, AsyncClient, Response
 
-from src.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
-from src.core.config import get_settings
-from src.main import app
-from src.api.deps import get_uow
+from app.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
+from app.core.config import get_settings
+from app.main import app
+from app.api.deps import get_uow
 from tests.helpers import PASSWORD, SECRET_FIELDS, MakeUser, AuthHeaders
 
 

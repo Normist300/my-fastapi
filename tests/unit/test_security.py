@@ -4,14 +4,14 @@ import uuid
 import pytest
 from pydantic import SecretStr
 
-from src.core.config import get_settings
-from src.core.security import (
+from app.core.config import get_settings
+from app.core.security import (
     create_access_token,
     decode_access_token,
     hash_password,
     verify_password,
 )
-from src.services.exceptions import InvalidToken
+from app.services.exceptions import InvalidToken
 from tests.unit.helpers import make_token
 
 

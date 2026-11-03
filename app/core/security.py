@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 import jwt
 from pwdlib import PasswordHash
 
-from src.core.config import get_settings
-from src.services.exceptions import InvalidToken
+from app.core.config import get_settings
+from app.services.exceptions import InvalidToken
 
 ALGORITHM = "HS256"
 

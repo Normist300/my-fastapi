@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 
-from src.core.config import get_settings
-from src.core.db.db import async_session_factory
-from src.core.db.schemas import UserRead
-from src.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
-from src.services.item import ItemService
-from src.services.user import UserService
-from src.services.auth import AuthService
+from app.core.config import get_settings
+from app.db.db import async_session_factory
+from app.db.schemas import UserRead
+from app.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
+from app.services.item import ItemService
+from app.services.user import UserService
+from app.services.auth import AuthService
 
 
 def get_uow() -> AbstractUnitOfWork:

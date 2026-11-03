@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from src.api.deps import AuthServiceDep
-from src.core.db.schemas import Token
+from app.api.deps import AuthServiceDep
+from app.db.schemas import Token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

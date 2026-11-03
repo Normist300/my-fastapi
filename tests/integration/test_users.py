@@ -5,12 +5,12 @@ import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from src.api.deps import get_uow
-from src.core.db.models import User
-from src.main import app
-from src.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
-from src.repositories.user import SQLAlchemyUserRepository
-from src.services.exceptions import UserAlreadyExists
+from app.api.deps import get_uow
+from app.db.models import User
+from app.main import app
+from app.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
+from app.repositories.user import SQLAlchemyUserRepository
+from app.services.exceptions import UserAlreadyExists
 from tests.helpers import PASSWORD, AuthHeaders, MakeUser
 
 

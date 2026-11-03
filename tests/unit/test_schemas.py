@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from src.core.db.schemas import ItemUpdate
+from app.db.schemas import ItemUpdate
 
 
 def test_ItemUpdate_with_explicitly_title_is_null_is_rejected() -> None:

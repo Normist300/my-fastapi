@@ -1,10 +1,10 @@
 import uuid
 
-from src.core.db.models import User
-from src.core.db.schemas import UserPublic, UserRegister, UserUpdate
-from src.core.security import hash_password
-from src.core.uow import AbstractUnitOfWork
-from src.services.exceptions import UserAlreadyExists, UserNotFound
+from app.db.models import User
+from app.db.schemas import UserPublic, UserRegister, UserUpdate
+from app.core.security import hash_password
+from app.core.uow import AbstractUnitOfWork
+from app.services.exceptions import UserAlreadyExists, UserNotFound
 
 
 class UserService:

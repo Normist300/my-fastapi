@@ -3,10 +3,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.api.v1.main import api_router
-from src.core.config import get_settings
-from src.core.db.db import engine
-from src.core.exception_handlers import register_exception_handlers
+from app.api.v1.main import api_router
+from app.core.config import get_settings
+from app.db.db import engine
+from app.core.exception_handlers import register_exception_handlers
 
 
 @asynccontextmanager

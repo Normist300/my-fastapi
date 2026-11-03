@@ -3,10 +3,10 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.core.db.models import Item
-from src.repositories.base import AbstractRepository
-from src.repositories.item import SQLAlchemyItemRepository, AbstractItemRepository
-from src.repositories.user import AbstractUserRepository, SQLAlchemyUserRepository
+from app.db.models import Item
+from app.repositories.base import AbstractRepository
+from app.repositories.item import SQLAlchemyItemRepository, AbstractItemRepository
+from app.repositories.user import AbstractUserRepository, SQLAlchemyUserRepository
 
 
 class AbstractUnitOfWork(ABC):

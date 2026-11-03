@@ -1,12 +1,12 @@
-from src.core.uow import AbstractUnitOfWork
-from src.services.exceptions import UserInactive, InvalidCredentials, InvalidToken
-from src.core.security import (
+from app.core.uow import AbstractUnitOfWork
+from app.services.exceptions import UserInactive, InvalidCredentials, InvalidToken
+from app.core.security import (
     verify_password,
     DUMMY_HASH,
     create_access_token,
     decode_access_token,
 )
-from src.core.db.schemas import Token, UserRead
+from app.db.schemas import Token, UserRead
 
 
 class AuthService:

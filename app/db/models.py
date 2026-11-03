@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.db.base import Base, IDMixin, TimestampMixin
+from app.db.base import Base, IDMixin, TimestampMixin
 
 
 class User(Base, IDMixin, TimestampMixin):

@@ -3,8 +3,8 @@ import uuid
 
 from fastapi import APIRouter, Query, status
 
-from src.api.deps import ItemServiceDep, CurrentUserDep
-from src.core.db.schemas import ItemCreate, ItemRead, ItemUpdate
+from app.api.deps import ItemServiceDep, CurrentUserDep
+from app.db.schemas import ItemCreate, ItemRead, ItemUpdate
 
 router = APIRouter(prefix="/items", tags=["items"])
 

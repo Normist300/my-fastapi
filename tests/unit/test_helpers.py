@@ -1,7 +1,7 @@
 import uuid
 
 from tests.unit.helpers import make_token
-from src.core.security import decode_access_token
+from app.core.security import decode_access_token
 
 
 def test_make_token_default_is_accepted() -> None:

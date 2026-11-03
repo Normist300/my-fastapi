@@ -1,6 +1,6 @@
-import src.core.db.models # Для Base
-from src.core.db.base import Base
-from src.core.db.models import User
+import app.db.models # Для Base
+from app.db.base import Base
+from app.db.models import User
 
 from collections.abc import Awaitable, Callable
 

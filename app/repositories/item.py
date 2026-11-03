@@ -3,8 +3,8 @@ import uuid
 
 from sqlalchemy import delete, func, select
 
-from src.core.db.models import Item, User
-from src.repositories.base import SQLAlchemyRepository, AbstractRepository
+from app.db.models import Item, User
+from app.repositories.base import SQLAlchemyRepository, AbstractRepository
 
 
 class AbstractItemRepository(AbstractRepository[Item]):

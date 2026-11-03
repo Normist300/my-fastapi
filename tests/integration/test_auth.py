@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 import pytest
 
-from src.core.uow import AbstractUnitOfWork
+from app.core.uow import AbstractUnitOfWork
 from tests.helpers import PASSWORD, AuthHeaders, MakeUser
 
 

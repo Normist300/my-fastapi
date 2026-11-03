@@ -1,9 +1,9 @@
 import uuid
 
-from src.core.db.models import Item
-from src.core.db.schemas import ItemCreate, ItemRead, ItemUpdate
-from src.core.uow import AbstractUnitOfWork
-from src.services.exceptions import (
+from app.db.models import Item
+from app.db.schemas import ItemCreate, ItemRead, ItemUpdate
+from app.core.uow import AbstractUnitOfWork
+from app.services.exceptions import (
     ItemAccessDenied,
     ItemNotFound,
     UserNotFound,

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from src.core.config import get_settings
+from app.core.config import get_settings
 
 engine: AsyncEngine = create_async_engine(
     get_settings().postgres_dsn.get_secret_value(),

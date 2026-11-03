@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from httpx import AsyncClient
 
-from src.core.uow import AbstractUnitOfWork
+from app.core.uow import AbstractUnitOfWork
 from tests.helpers import AuthHeaders, MakeUser
 
 TITLE = "title"
