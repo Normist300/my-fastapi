@@ -28,7 +28,7 @@ class SQLAlchemyUserRepository(SQLAlchemyRepository[User], AbstractUserRepositor
                 isinstance(cause, UniqueViolationError) # Ошибка вызвана нарушением уникальности (уже существует с таким значением)
                 and getattr(cause, "constraint_name", None) == "ix_user_email" # Ошибка именно из-за email
             ):
-                raise UserAlreadyExistsRepo(obj.email)
+                raise UserAlreadyExistsRepo(obj.email) from exc
 
             raise
 

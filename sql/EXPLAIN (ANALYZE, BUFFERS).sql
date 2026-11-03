@@ -1,0 +1,6 @@
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM item
+WHERE owner_id = '2c1978cc-22c9-43ea-8f61-2ffa2bccca49'
+ORDER BY created_at DESC, id DESC
+LIMIT 20 OFFSET 0;

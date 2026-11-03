@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from app.db.models import Item
@@ -9,6 +10,7 @@ from app.services.exceptions import (
     UserNotFound,
 )
 
+logger = logging.getLogger(__name__)
 
 class ItemService:
     def __init__(self, uow: AbstractUnitOfWork) -> None:
@@ -24,6 +26,13 @@ class ItemService:
             )
             await self.uow.items.add_one(item)
             await self.uow.commit()
+
+            logger.info(
+                "Item was created id=%s, owner_id=%s",
+                item.id,
+                user_id,
+            )
+
             return ItemRead.model_validate(item)
 
     async def get(self, item_id: uuid.UUID, user_id: uuid.UUID) -> ItemRead:
@@ -60,6 +69,13 @@ class ItemService:
             for field, value in data.model_dump(exclude_unset=True).items():
                 setattr(item, field, value)
             await self.uow.commit()
+
+            logger.info(
+                "Item was updated id=%s, owner_id=%s",
+                item_id,
+                user_id,
+            )
+
             return ItemRead.model_validate(item)
 
     async def delete(self, item_id: uuid.UUID, user_id: uuid.UUID) -> None:
@@ -73,9 +89,20 @@ class ItemService:
             await self.uow.items.delete(item_id)
             await self.uow.commit()
 
+            logger.info(
+                "Item was deleted id=%s, owner_id=%s",
+                item_id,
+                user_id,
+            )
+
     async def delete_all(self, user_id: uuid.UUID) -> None:
         async with self.uow:
             if await self.uow.items.count_by_owner(user_id) == 0:
                 raise ItemNotFound()
             await self.uow.items.delete_all(user_id)
             await self.uow.commit()
+
+            logger.info(
+                "User was deleted all items user_id=%s",
+                user_id,
+            )

@@ -1,4 +1,5 @@
 import uuid
+import logging
 
 from app.db.models import User
 from app.db.schemas import UserPublic, UserRegister, UserUpdate
@@ -6,6 +7,7 @@ from app.core.security import hash_password
 from app.core.uow import AbstractUnitOfWork
 from app.services.exceptions import UserAlreadyExists, UserNotFound
 
+logger = logging.getLogger(__name__)
 
 class UserService:
     def __init__(self, uow: AbstractUnitOfWork) -> None:
@@ -29,6 +31,12 @@ class UserService:
             )
             await self.uow.users.add_one(user)
             await self.uow.commit()
+
+            logger.info(
+                "User was registered user_id=%s",
+                user.id,
+            )
+
             return UserPublic.model_validate(user)
 
     async def get(self, id: uuid.UUID) -> UserPublic:
@@ -50,6 +58,12 @@ class UserService:
                 setattr(user, field, value)
 
             await self.uow.commit()
+
+            logger.info(
+                "User was updated user_id=%s",
+                user.id,
+            )
+            
             return UserPublic.model_validate(user)
 
     async def delete(self, id: uuid.UUID) -> None:
@@ -57,3 +71,8 @@ class UserService:
             await self._get_or_raise(id)
             await self.uow.users.delete(id)
             await self.uow.commit()
+
+            logger.info(
+                "User was deleted user_id=%s",
+                id,
+            )
