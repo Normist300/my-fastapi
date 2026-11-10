@@ -39,10 +39,11 @@ description: "Develop, review, test, and explain backend code in the my-fastapi 
 |---|---|
 | app/main.py | FastAPI, lifespan, API-router, обработчики ошибок |
 | app/api/deps.py | Composition root: UoW, сервисы, CurrentUserDep |
-| app/api/v1/routes/ | HTTP-эндпоинты user, item, auth |
+| app/api/v1/routes/ | HTTP-эндпоинты пользователей, задач и авторизации |
 | app/core/config.py, security.py, uow.py | Настройки, JWT/пароли, транзакции |
 | app/core/logging_config.py, middleware.py | Настройка логирования, HTTP-логи и замер длительности |
-| app/db/ | DeclarativeBase, ORM-модели, Pydantic-схемы, engine/session factory |
+| app/db/models/ | ORM-модели, загрузка пакета в `__init__.py` и общий `Base` в `base.py` |
+| app/db/schemas.py, app/db/db.py | Pydantic-схемы, engine и фабрика сессий |
 | app/repositories/, app/services/ | Запросы и бизнес-логика |
 | alembic/ | Миграции; env.py получает DSN из настроек |
 | tests/unit/, tests/integration/ | Чистая логика и проверки с Postgres/HTTP |

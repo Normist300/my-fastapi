@@ -1,5 +1,5 @@
 import app.db.models # Для Base
-from app.db.base import Base
+from app.db.models.base import Base
 from app.db.models import User
 
 from collections.abc import Awaitable, Callable
