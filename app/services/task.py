@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from app.db.models import Task
-from app.db.schemas import ItemCreate, ItemRead, ItemUpdate
+from app.db.schemas import TaskCreate, TaskRead, TaskUpdate
 from app.core.uow import AbstractUnitOfWork
 from app.core.exceptions import (
     ItemAccessDenied,
@@ -16,7 +16,7 @@ class ItemService:
     def __init__(self, uow: AbstractUnitOfWork) -> None:
         self.uow = uow
 
-    async def create(self, user_id: uuid.UUID, data: ItemCreate) -> ItemRead:
+    async def create(self, user_id: uuid.UUID, data: TaskCreate) -> TaskRead:
         async with self.uow:
             if await self.uow.users.get_one(user_id) is None:
                 raise UserNotFound(user_id)
@@ -33,9 +33,9 @@ class ItemService:
                 user_id,
             )
 
-            return ItemRead.model_validate(item)
+            return TaskRead.model_validate(item)
 
-    async def get(self, item_id: uuid.UUID, user_id: uuid.UUID) -> ItemRead:
+    async def get(self, item_id: uuid.UUID, user_id: uuid.UUID) -> TaskRead:
         async with self.uow:
             item = await self.uow.tasks.get_one(item_id)
             if item is None:
@@ -43,22 +43,22 @@ class ItemService:
             if item.created_by_id != user_id:
                 raise ItemAccessDenied(item_id, user_id)
 
-            return ItemRead.model_validate(item)
+            return TaskRead.model_validate(item)
 
     async def get_all_users_item(self,
                                  user_id: uuid.UUID,
                                  *,
                                  limit: int,
                                  offset: int,                                 
-                                 ) -> list[ItemRead]:
+                                 ) -> list[TaskRead]:
         async with self.uow:
             items = await self.uow.tasks.get_all_users_task(user_id, limit=limit, offset=offset)
 
-            return [ItemRead.model_validate(item) for item in items]
+            return [TaskRead.model_validate(item) for item in items]
 
     async def update(
-        self, item_id: uuid.UUID, user_id: uuid.UUID, data: ItemUpdate
-    ) -> ItemRead:
+        self, item_id: uuid.UUID, user_id: uuid.UUID, data: TaskUpdate
+    ) -> TaskRead:
         async with self.uow:
             item = await self.uow.tasks.get_one(item_id)
             if item is None:
@@ -76,7 +76,7 @@ class ItemService:
                 user_id,
             )
 
-            return ItemRead.model_validate(item)
+            return TaskRead.model_validate(item)
 
     async def delete(self, item_id: uuid.UUID, user_id: uuid.UUID) -> None:
         async with self.uow:

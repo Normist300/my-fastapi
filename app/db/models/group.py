@@ -23,7 +23,7 @@ class Group(Base, IDMixin, TimestampMixin):
 
     """Связи написаны с двух сторон, но не все они нужны"""
     tasks: Mapped[list[Task]] = relationship(
-        back_populates="group", cascade="all, delete-orphan"
+        cascade="all, delete-orphan"
     )
     # memberships: Mapped[list[GroupMember]] = relationship(
     #     back_populates="group",
