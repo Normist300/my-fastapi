@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import Base
+from app.db.models.base import Base
 
 
 class AbstractRepository[ModelType: Base](ABC):

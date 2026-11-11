@@ -34,7 +34,7 @@ class Task(Base, IDMixin, TimestampMixin):
     group_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("task_group.id", ondelete="CASCADE")
     )
-    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("user.id", ondelete="SET NULL")
     )
     assignee_id: Mapped[uuid.UUID | None] = mapped_column(

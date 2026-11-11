@@ -184,4 +184,4 @@ async def test_user_deletion_deletes_their_items(
     assert deleted.status_code == 204
 
     async with uow:
-        assert await uow.items.get_one(uuid.UUID(item_id)) is None
+        assert await uow.tasks.get_one(uuid.UUID(item_id)) is None

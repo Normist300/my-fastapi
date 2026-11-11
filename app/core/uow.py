@@ -3,15 +3,17 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.models import Item
+from app.db.models import Task
 from app.repositories.base import AbstractRepository
-from app.repositories.item import SQLAlchemyItemRepository, AbstractItemRepository
+from app.repositories.task import SQLAlchemyTaskRepository, AbstractTaskRepository
 from app.repositories.user import AbstractUserRepository, SQLAlchemyUserRepository
+from app.repositories.group import AbstractGroupRepository, SQLAlchemyGroupRepository
 
 
 class AbstractUnitOfWork(ABC):
     users: AbstractUserRepository
-    items: AbstractItemRepository
+    tasks: AbstractTaskRepository
+    group: AbstractGroupRepository
 
     async def __aenter__(self) -> Self:
         return self
@@ -37,7 +39,8 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
             close_resets_only=False
         )  # close_resets_only=False нужен, чтобы не забывать открывать async with self.uow: в сервисах
         self.users = SQLAlchemyUserRepository(self.session)
-        self.items = SQLAlchemyItemRepository(self.session)
+        self.tasks = SQLAlchemyTaskRepository(self.session)
+        self.group = SQLAlchemyGroupRepository(self.session)
         return self
 
     # __aexit__ оформлять через try, чтобы точно session.close()

@@ -7,7 +7,7 @@ from app.core.config import get_settings
 from app.db.db import async_session_factory
 from app.db.schemas import UserRead
 from app.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
-from app.services.item import ItemService
+from app.services.task import ItemService
 from app.services.user import UserService
 from app.services.auth import AuthService
 

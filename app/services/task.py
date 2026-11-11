@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from app.db.models import Item
+from app.db.models import Task
 from app.db.schemas import ItemCreate, ItemRead, ItemUpdate
 from app.core.uow import AbstractUnitOfWork
 from app.services.exceptions import (
@@ -21,10 +21,10 @@ class ItemService:
             if await self.uow.users.get_one(user_id) is None:
                 raise UserNotFound(user_id)
 
-            item = Item(
+            item = Task(
                 title=data.title, description=data.description, owner_id=user_id
             )
-            await self.uow.items.add_one(item)
+            await self.uow.tasks.add_one(item)
             await self.uow.commit()
 
             logger.info(
@@ -37,10 +37,10 @@ class ItemService:
 
     async def get(self, item_id: uuid.UUID, user_id: uuid.UUID) -> ItemRead:
         async with self.uow:
-            item = await self.uow.items.get_one(item_id)
+            item = await self.uow.tasks.get_one(item_id)
             if item is None:
                 raise ItemNotFound(item_id)
-            if item.owner_id != user_id:
+            if item.created_by_id != user_id:
                 raise ItemAccessDenied(item_id, user_id)
 
             return ItemRead.model_validate(item)
@@ -52,7 +52,7 @@ class ItemService:
                                  offset: int,                                 
                                  ) -> list[ItemRead]:
         async with self.uow:
-            items = await self.uow.items.get_all_users_item(user_id, limit=limit, offset=offset)
+            items = await self.uow.tasks.get_all_users_task(user_id, limit=limit, offset=offset)
 
             return [ItemRead.model_validate(item) for item in items]
 
@@ -60,10 +60,10 @@ class ItemService:
         self, item_id: uuid.UUID, user_id: uuid.UUID, data: ItemUpdate
     ) -> ItemRead:
         async with self.uow:
-            item = await self.uow.items.get_one(item_id)
+            item = await self.uow.tasks.get_one(item_id)
             if item is None:
                 raise ItemNotFound(item_id)
-            if item.owner_id != user_id:
+            if item.created_by_id != user_id:
                 raise ItemAccessDenied(item_id, user_id)
 
             for field, value in data.model_dump(exclude_unset=True).items():
@@ -80,13 +80,13 @@ class ItemService:
 
     async def delete(self, item_id: uuid.UUID, user_id: uuid.UUID) -> None:
         async with self.uow:
-            item = await self.uow.items.get_one(item_id)
+            item = await self.uow.tasks.get_one(item_id)
             if item is None:
                 raise ItemNotFound(item_id)
-            if item.owner_id != user_id:
+            if item.created_by_id != user_id:
                 raise ItemAccessDenied(item_id, user_id)
 
-            await self.uow.items.delete(item_id)
+            await self.uow.tasks.delete(item_id)
             await self.uow.commit()
 
             logger.info(
@@ -97,9 +97,9 @@ class ItemService:
 
     async def delete_all(self, user_id: uuid.UUID) -> None:
         async with self.uow:
-            if await self.uow.items.count_by_owner(user_id) == 0:
+            if await self.uow.tasks.count_by_owner(user_id) == 0:
                 raise ItemNotFound()
-            await self.uow.items.delete_all(user_id)
+            await self.uow.tasks.delete_all(user_id)
             await self.uow.commit()
 
             logger.info(

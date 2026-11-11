@@ -69,6 +69,7 @@ class UserService:
     async def delete(self, id: uuid.UUID) -> None:
         async with self.uow:
             await self._get_or_raise(id)
+            await self.uow.tasks.delete_all_except_groups_tasks(id)
             await self.uow.users.delete(id)
             await self.uow.commit()
 

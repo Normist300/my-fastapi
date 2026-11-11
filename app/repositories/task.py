@@ -3,19 +3,19 @@ import uuid
 
 from sqlalchemy import delete, func, select
 
-from app.db.models import Item, User
+from app.db.models import Task
 from app.repositories.base import SQLAlchemyRepository, AbstractRepository
 
 
-class AbstractItemRepository(AbstractRepository[Item]):
+class AbstractTaskRepository(AbstractRepository[Task]):
     @abstractmethod
-    async def get_all_users_item(
+    async def get_all_users_task(
         self,
         user_id: uuid.UUID,
         *,
         limit: int,
         offset: int,
-    ) -> list[Item]: ...
+    ) -> list[Task]: ...
 
     @abstractmethod
     async def count_by_owner(self, user_id: uuid.UUID) -> int: ...
@@ -23,21 +23,24 @@ class AbstractItemRepository(AbstractRepository[Item]):
     @abstractmethod
     async def delete_all(self, user_id: uuid.UUID) -> None: ...
 
+    @abstractmethod
+    async def delete_all_except_groups_tasks(self, user_id: uuid.UUID) -> None: ...
 
-class SQLAlchemyItemRepository(SQLAlchemyRepository[Item], AbstractItemRepository):
-    model = Item
 
-    async def get_all_users_item(
+class SQLAlchemyTaskRepository(SQLAlchemyRepository[Task], AbstractTaskRepository):
+    model = Task
+
+    async def get_all_users_task(
         self,
         user_id: uuid.UUID,
         *,
         limit: int,
         offset: int,
-    ) -> list[Item]:
+    ) -> list[Task]:
         stmt = (
-            select(Item)
-            .where(Item.owner_id == user_id)
-            .order_by(Item.created_at.desc(), Item.id.desc())
+            select(Task)
+            .where(Task.created_by_id == user_id)
+            .order_by(Task.created_at.desc(), Task.id.desc())
             .limit(limit)
             .offset(offset)
         )
@@ -47,13 +50,20 @@ class SQLAlchemyItemRepository(SQLAlchemyRepository[Item], AbstractItemRepositor
     async def count_by_owner(self, user_id: uuid.UUID) -> int:
         stmt = (
             select(func.count())
-            .select_from(Item)
-            .where(Item.owner_id == user_id)
+            .select_from(Task)
+            .where(Task.created_by_id == user_id)
         )
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
     async def delete_all(self, user_id: uuid.UUID) -> None:
         await self.session.execute(
-            delete(Item).where(Item.owner_id == user_id)
+            delete(Task).where(Task.created_by_id == user_id)
         )
+
+    async def delete_all_except_groups_tasks(self, user_id: uuid.UUID) -> None:
+        stmt = delete(Task).where(
+            Task.created_by_id == user_id,
+            Task.group_id.is_(None),
+        )
+        await self.session.execute(stmt)
