@@ -1,5 +1,5 @@
 from app.core.uow import AbstractUnitOfWork
-from app.services.exceptions import UserInactive, InvalidCredentials, InvalidToken
+from app.core.exceptions import UserInactive, InvalidCredentials, InvalidToken
 from app.core.security import (
     verify_password,
     DUMMY_HASH,

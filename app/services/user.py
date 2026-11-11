@@ -5,7 +5,7 @@ from app.db.models import User
 from app.db.schemas import UserPublic, UserRegister, UserUpdate
 from app.core.security import hash_password
 from app.core.uow import AbstractUnitOfWork
-from app.services.exceptions import UserAlreadyExists, UserNotFound
+from app.core.exceptions import UserAlreadyExists, UserNotFound
 
 logger = logging.getLogger(__name__)
 

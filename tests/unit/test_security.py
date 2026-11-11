@@ -11,7 +11,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.services.exceptions import InvalidToken
+from app.core.exceptions import InvalidToken
 from tests.unit.helpers import make_token
 
 
