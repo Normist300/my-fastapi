@@ -5,7 +5,7 @@ import jwt
 from pwdlib import PasswordHash
 
 from app.core.config import get_settings
-from app.services.exceptions import InvalidToken
+from app.core.exceptions import InvalidToken
 
 ALGORITHM = "HS256"
 

@@ -8,10 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from app.api.deps import get_uow
 from app.db.models import User
 from app.main import app
-from app.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
+from app.core.uow import SQLAlchemyUnitOfWork
 from app.repositories.user import SQLAlchemyUserRepository
-from app.services.exceptions import UserAlreadyExists
-from tests.helpers import PASSWORD, AuthHeaders, MakeUser
+from tests.helpers import PASSWORD, MakeUser
 
 
 async def test_registration_returns_submitted_data(client: AsyncClient) -> None:

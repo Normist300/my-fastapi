@@ -4,7 +4,7 @@ import uuid
 from app.db.models import Task
 from app.db.schemas import ItemCreate, ItemRead, ItemUpdate
 from app.core.uow import AbstractUnitOfWork
-from app.services.exceptions import (
+from app.core.exceptions import (
     ItemAccessDenied,
     ItemNotFound,
     UserNotFound,

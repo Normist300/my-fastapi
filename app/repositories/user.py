@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db.models import User
 from app.repositories.base import AbstractRepository, SQLAlchemyRepository
-from app.services.exceptions import UserAlreadyExistsRepo
+from app.core.exceptions import UserAlreadyExistsRepo
 
 
 class AbstractUserRepository(AbstractRepository[User]):
