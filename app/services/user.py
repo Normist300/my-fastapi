@@ -68,16 +68,17 @@ class UserService:
 
     async def delete(self, id: uuid.UUID) -> None:
         async with self.uow:
-            if await self.uow.users.get_one_for_update(id) is None:
+            if await self.uow.users.get_one_for_update(id) is not None:
+                await self.uow.tasks.delete_all_except_groups_tasks(id)
+                await self.uow.users.delete(id)
+                await self.uow.commit()
+
+                logger.info(
+                    "User was deleted user_id=%s",
+                    id,
+                )
+            else:
                 logger.info(
                     "User not found during deletion user_id=%s",
                     id,
                 )
-            await self.uow.tasks.delete_all_except_groups_tasks(id)
-            await self.uow.users.delete(id)
-            await self.uow.commit()
-
-            logger.info(
-                "User was deleted user_id=%s",
-                id,
-            )

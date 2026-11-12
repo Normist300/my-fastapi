@@ -84,4 +84,25 @@ class GroupAccessDenied(PermissionDeniedError):
         super().__init__(
             f"User with id={user_id} has no access to group with id={group_id}"
         )
+
+
+class GroupAlreadyExists(AlreadyExistsError):
+    def __init__(self, name: str) -> None:
+        super().__init__(f"Group with email={name} already exists")
+
+
+class GroupNotFound(NotFoundError): 
+    def __init__(self, group_id: uuid.UUID) -> None:
+        super().__init__(f"Group with id={group_id} not found")
+# endregion
+
+# region GroupMember
+class GroupMemberAlreadyExists(AlreadyExistsError):
+    def __init__(self, user_id: uuid.UUID, group_id: uuid.UUID) -> None:
+        super().__init__(f"User_id={user_id} already is member in group_id={group_id}")
+
+
+class GroupMemberNotFound(NotFoundError): 
+    def __init__(self, user_id: uuid.UUID, group_id: uuid.UUID) -> None:
+        super().__init__(f"Memberships with user_id={user_id} and group_id={group_id} not found")
 # endregion

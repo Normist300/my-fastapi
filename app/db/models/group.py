@@ -19,7 +19,10 @@ class Group(Base, IDMixin, TimestampMixin):
 
     __tablename__ = "task_group"
 
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE")
+    )
 
     """Связи написаны с двух сторон, но не все они нужны"""
     tasks: Mapped[list[Task]] = relationship(
