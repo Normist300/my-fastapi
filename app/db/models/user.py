@@ -23,7 +23,7 @@ class User(Base, IDMixin, TimestampMixin):
     full_name: Mapped[str | None] = mapped_column(default=None)
     hashed_password: Mapped[str] = mapped_column(info={"secret": True})
 
-    tasks_created_by_user: Mapped[list[Task]] = relationship(foreign_keys="Task.owner_id")
+    tasks_created_by_user: Mapped[list[Task]] = relationship(foreign_keys="Task.created_by_id")
 
     """Связи написаны с двух сторон, но не все они нужны"""
     # tasks_assigned_to_user: Mapped[list[Task]] = relationship(

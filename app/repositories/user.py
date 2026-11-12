@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import uuid
 
 from asyncpg import UniqueViolationError
 from sqlalchemy import select
@@ -12,6 +13,9 @@ from app.core.exceptions import UserAlreadyExistsRepo
 class AbstractUserRepository(AbstractRepository[User]):
     @abstractmethod
     async def get_by_email(self, email: str) -> User | None: ...
+
+    @abstractmethod
+    async def get_one_for_update(self, user_id: uuid.UUID) -> User | None: ...
 
 
 class SQLAlchemyUserRepository(SQLAlchemyRepository[User], AbstractUserRepository):
@@ -35,4 +39,9 @@ class SQLAlchemyUserRepository(SQLAlchemyRepository[User], AbstractUserRepositor
     async def get_by_email(self, email: str) -> User | None:
         result = await self.session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
-        
+
+    async def get_one_for_update(self, user_id: uuid.UUID) -> User | None:
+        # with_for_update блокирует другие SQL-запросы (например для безопасного удаления)
+        stmt = select(User).where(User.id == user_id).with_for_update()
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()

@@ -23,7 +23,7 @@ async def get_all_items(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[TaskRead]:
-    return await service.get_all_users_item(user.id, limit=limit, offset=offset)
+    return await service.get_all_users_task(user.id, limit=limit, offset=offset)
 
 
 @router.get("/{item_id}")

@@ -80,23 +80,21 @@ class TaskBase(GroupsIdsMixin):
     status: TaskStatus = TaskStatus.TODO
 
 
-class TaskCreate(TaskBase): ...
+class TaskCreate(TaskBase):
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=255)
+    status: TaskStatus = TaskStatus.TODO
+    group_id: uuid.UUID | None
+    assignee_id:  uuid.UUID | None
 
 
 class TaskUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=255)
-    # если pydantic >= 2.14 (вышел 8 октября 2026), то можно так: (вместо title_is_not_null)
+    title: str = Field(default="DEFAULT_VALUE", min_length=1, max_length=255)
+    # если pydantic >= 2.14 (вышел 8 октября 2026), то можно так:
     # title: str | MISSING = Field(default=MISSING, min_length=1, max_length=255)
     description: str | None = Field(default=None, max_length=255)
     status: TaskStatus = TaskStatus.TODO
     assignee_id:  uuid.UUID | None
-
-    @field_validator("title")
-    @classmethod
-    def title_is_not_null(cls, value: str | None) -> str | None:
-        if value is None:
-            raise ValueError("title cannot be null")
-        return value
 
 
 
@@ -110,12 +108,13 @@ class GroupBase(BaseModel):
 
 class GroupCreate(GroupBase): ...
 
-class GroupUpdate(GroupBase): ...
+class GroupUpdate(GroupBase):
+    name: str = Field(default="DEFAULT_VALUE", min_length=1, max_length=255)
 
 class GroupRead(GroupBase, IDMixin, TimestampMixin, ORMReadMixin): ...
 
 class GroupWithTasks(GroupRead):
-    tasks: list[GroupRead]
+    tasks: list[TaskRead]
 #endregion
 
 #region GroupMember

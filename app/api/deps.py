@@ -7,7 +7,7 @@ from app.core.config import get_settings
 from app.db.db import async_session_factory
 from app.db.schemas import UserRead
 from app.core.uow import AbstractUnitOfWork, SQLAlchemyUnitOfWork
-from app.services.task import ItemService
+from app.services.task import TaskService
 from app.services.user import UserService
 from app.services.auth import AuthService
 
@@ -23,8 +23,8 @@ def get_user_service(uow: UoWDep) -> UserService:
     return UserService(uow)
 
 
-def get_item_service(uow: UoWDep) -> ItemService:
-    return ItemService(uow)
+def get_item_service(uow: UoWDep) -> TaskService:
+    return TaskService(uow)
 
 
 def get_auth_service(uow: UoWDep) -> AuthService:
@@ -32,7 +32,7 @@ def get_auth_service(uow: UoWDep) -> AuthService:
 
 
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
-ItemServiceDep = Annotated[ItemService, Depends(get_item_service)]
+ItemServiceDep = Annotated[TaskService, Depends(get_item_service)]
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 

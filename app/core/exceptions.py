@@ -63,17 +63,25 @@ class InvalidToken(AuthenticationError):
 # endregion
 
 
-# region Item
-class ItemNotFound(NotFoundError): ...
+# region Task
+class TaskNotFound(NotFoundError): ...
 
 
-class ItemAccessDenied(PermissionDeniedError):
-    def __init__(self, item_id: uuid.UUID, user_id: uuid.UUID) -> None:
-        self.item_id = item_id
+class TaskAccessDenied(PermissionDeniedError):
+    def __init__(self, task_id: uuid.UUID, user_id: uuid.UUID) -> None:
+        self.task_id = task_id
         self.user_id = user_id
         super().__init__(
-            f"User with id={user_id} has no access to item with id={item_id}"
+            f"User with id={user_id} has no access to task with id={task_id}"
         )
+# endregion
 
-
+# region Group
+class GroupAccessDenied(PermissionDeniedError):
+    def __init__(self, group_id: uuid.UUID | None, user_id: uuid.UUID) -> None:
+        self.group_id = group_id
+        self.user_id = user_id
+        super().__init__(
+            f"User with id={user_id} has no access to group with id={group_id}"
+        )
 # endregion
